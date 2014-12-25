@@ -1,0 +1,32 @@
+<!-- INCLUDE overall_header.html -->
+
+<h1>{L_SETTINGS}</h1>
+
+<form id="acp_board" method="post" action="{U_ACTION}">
+	<fieldset>
+		<dl>
+			<dt><label for="Martin_LocalUrlToText_forum">{L_ACP_LOCALURLTOTEXT_FORUM}{L_COLON}</label><br /><span>{L_ACP_LOCALURLTOTEXT_FORUM_EXPLAIN}</span></dt>
+			<dd><input type="text" value="{MARTIN_LOCALURLTOTEXT_FORUM}" name="Martin_LocalUrlToText_forum" maxlength="255" size="40" id="Martin_LocalUrlToText_forum"></dd>
+		</dl>
+		<dl>
+			<dt><label for="Martin_LocalUrlToText_topic">{L_ACP_LOCALURLTOTEXT_TOPIC}{L_COLON}</label><br /><span>{L_ACP_LOCALURLTOTEXT_TOPIC_EXPLAIN}</span></dt>
+			<dd><input type="text" value="{MARTIN_LOCALURLTOTEXT_TOPIC}" name="Martin_LocalUrlToText_topic" maxlength="255" size="40" id="Martin_LocalUrlToText_topic"></dd>
+		</dl>
+		<dl>
+			<dt><label for="Martin_LocalUrlToText_post">{L_ACP_LOCALURLTOTEXT_POST}{L_COLON}</label><br /><span>{L_ACP_LOCALURLTOTEXT_POST_EXPLAIN}</span></dt>
+			<dd><input type="text" value="{MARTIN_LOCALURLTOTEXT_POST}" name="Martin_LocalUrlToText_post" maxlength="255" size="40" id="Martin_LocalUrlToText_post"></dd>
+		</dl>
+		<dl>
+			<dt><label for="Martin_LocalUrlToText_user">{L_ACP_LOCALURLTOTEXT_USER}{L_COLON}</label><br /><span>{L_ACP_LOCALURLTOTEXT_USER_EXPLAIN}</span></dt>
+			<dd><input type="text" value="{MARTIN_LOCALURLTOTEXT_USER}" name="Martin_LocalUrlToText_user" maxlength="255" size="40" id="Martin_LocalUrlToText_user"></dd>
+		</dl>
+
+		<p class="submit-buttons">
+			<input class="button1" type="submit" id="submit" name="submit" value="{L_SUBMIT}" />&nbsp;
+			<input class="button2" type="reset" id="reset" name="reset" value="{L_RESET}" />
+		</p>
+
+		{S_FORM_TOKEN}
+	</fieldset>
+</form>
+<!-- INCLUDE overall_footer.html -->

@@ -1,0 +1,10 @@
+services:
+    Martin.LocalUrlToText.listener:
+        class: Martin\LocalUrlToText\event\listener
+        arguments:
+            - @config
+            - @auth
+            - @dbal.conn
+            - %core.php_ext% 
+        tags:
+            - { name: event.listener }
