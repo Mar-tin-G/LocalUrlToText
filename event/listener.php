@@ -55,6 +55,17 @@ class listener implements EventSubscriberInterface
 		$this->php_ext = $php_ext;
 	}
 
+	/**
+	* Function to replace the text of html links that phpBB automatically parsed
+	* (<a class="postlink-local" href="URL">TEXT</a>) with a custom text, made up of 
+	* configurable placeholders. Works for forum, topic, post and member profile links.
+	* NB: only the output to the visitors user agent is altered, the data in the
+	* database is unchanged.
+	*
+	* @param	object		$event	The event object
+	* @return	null
+	* @access	public
+	*/ 
 	public function local_url_to_text($event)
 	{
 		$text = $event['text'];
