@@ -1,13 +1,13 @@
 <?php
 /**
 *
-* @package phpBB Extension - Martin LocalUrlToText
-* @copyright (c) 2014 Martin
+* @package phpBB Extension - martin localurltotext
+* @copyright (c) 2014 Martin ( https://github.com/Martin-G- )
 * @license http://opensource.org/licenses/gpl-2.0.php GNU General Public License v2
 *
 */
 
-namespace Martin\LocalUrlToText\acp;
+namespace martin\localurltotext\acp;
 
 class main_module
 {
@@ -21,29 +21,29 @@ class main_module
 		$user->add_lang('acp/common');
 		$this->tpl_name = 'localurltotext_body';
 		$this->page_title = $user->lang('ACP_LOCALURLTOTEXT_TITLE');
-		add_form_key('Martin/LocalUrlToText');
+		add_form_key('martin/localurltotext');
 
 		if ($request->is_set_post('submit'))
 		{
-			if (!check_form_key('Martin/LocalUrlToText'))
+			if (!check_form_key('martin/localurltotext'))
 			{
 				trigger_error('FORM_INVALID');
 			}
 
-			$config->set('Martin_LocalUrlToText_forum', $request->variable('Martin_LocalUrlToText_forum', ''));
-			$config->set('Martin_LocalUrlToText_topic', $request->variable('Martin_LocalUrlToText_topic', ''));
-			$config->set('Martin_LocalUrlToText_post', $request->variable('Martin_LocalUrlToText_post', ''));
-			$config->set('Martin_LocalUrlToText_user', $request->variable('Martin_LocalUrlToText_user', ''));
+			$config->set('martin_localurltotext_forum', $request->variable('martin_localurltotext_forum', ''));
+			$config->set('martin_localurltotext_topic', $request->variable('martin_localurltotext_topic', ''));
+			$config->set('martin_localurltotext_post', $request->variable('martin_localurltotext_post', ''));
+			$config->set('martin_localurltotext_user', $request->variable('martin_localurltotext_user', ''));
 
 			trigger_error($user->lang('ACP_LOCALURLTOTEXT_SETTING_SAVED') . adm_back_link($this->u_action));
 		}
 
 		$template->assign_vars(array(
 			'U_ACTION'						=> $this->u_action,
-			'MARTIN_LOCALURLTOTEXT_FORUM'	=> $config['Martin_LocalUrlToText_forum'],
-			'MARTIN_LOCALURLTOTEXT_TOPIC'	=> $config['Martin_LocalUrlToText_topic'],
-			'MARTIN_LOCALURLTOTEXT_POST'	=> $config['Martin_LocalUrlToText_post'],
-			'MARTIN_LOCALURLTOTEXT_USER'	=> $config['Martin_LocalUrlToText_user'],
+			'MARTIN_LOCALURLTOTEXT_FORUM'	=> $config['martin_localurltotext_forum'],
+			'MARTIN_LOCALURLTOTEXT_TOPIC'	=> $config['martin_localurltotext_topic'],
+			'MARTIN_LOCALURLTOTEXT_POST'	=> $config['martin_localurltotext_post'],
+			'MARTIN_LOCALURLTOTEXT_USER'	=> $config['martin_localurltotext_user'],
 		));
 	}
 }

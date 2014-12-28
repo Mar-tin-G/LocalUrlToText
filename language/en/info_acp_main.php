@@ -1,8 +1,8 @@
 <?php
 /**
 *
-* @package phpBB Extension - Martin LocalUrlToText
-* @copyright (c) 2014 Martin
+* @package phpBB Extension - martin localurltotext
+* @copyright (c) 2014 Martin ( https://github.com/Martin-G- )
 * @license http://opensource.org/licenses/gpl-2.0.php GNU General Public License v2
 *
 */

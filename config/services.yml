@@ -1,6 +1,6 @@
 services:
-    Martin.LocalUrlToText.listener:
-        class: Martin\LocalUrlToText\event\listener
+    martin.localurltotext.listener:
+        class: martin\localurltotext\event\listener
         arguments:
             - @config
             - @auth

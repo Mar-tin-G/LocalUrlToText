@@ -1,13 +1,13 @@
 <?php
 /**
 *
-* @package phpBB Extension - Martin LocalUrlToText
-* @copyright (c) 2014 Martin
+* @package phpBB Extension - martin localurltotext
+* @copyright (c) 2014 Martin ( https://github.com/Martin-G- )
 * @license http://opensource.org/licenses/gpl-2.0.php GNU General Public License v2
 *
 */
 
-namespace Martin\LocalUrlToText\event;
+namespace martin\localurltotext\event;
 
 /**
 * @ignore
@@ -130,7 +130,7 @@ class listener implements EventSubscriberInterface
 
 			// first fetch the posts from the DB, since if we're lucky we get all needed topic titles,
 			// forum names and user names from one single query
-			if (count($post_ids))
+			if (sizeof($post_ids))
 			{
 				$forum_ids_to_remove = array();
 				$topic_ids_to_remove = array();
@@ -202,7 +202,7 @@ class listener implements EventSubscriberInterface
 
 			// if there are topic IDs left to be fetched, we execute this query next, because
 			// perhaps this query fetches also the missing forum names
-			if (count($topic_ids))
+			if (sizeof($topic_ids))
 			{
 				$forum_ids_to_remove = array();
 
@@ -243,7 +243,7 @@ class listener implements EventSubscriberInterface
 			}
 
 			// bad luck, still forum IDs left, we have to query a third time...
-			if (count($forum_ids))
+			if (sizeof($forum_ids))
 			{
 				$sql_ary = array(
 					'SELECT'	=> 'f.forum_id, f.forum_name',
@@ -263,7 +263,7 @@ class listener implements EventSubscriberInterface
 			}
 
 			// ... and a fourth time for the missing user names
-			if (count($user_ids))
+			if (sizeof($user_ids))
 			{
 				$sql_ary = array(
 					'SELECT'	=> 'u.user_id, u.username',
@@ -291,7 +291,7 @@ class listener implements EventSubscriberInterface
 					case 'f':
 						if (isset($forum_names[$match[6]]))
 						{
-							$text = str_replace($match[0], $match[1] . str_replace('{FORUM_NAME}', $forum_names[$match[6]], htmlspecialchars_decode($this->config['Martin_LocalUrlToText_forum'])) . '</a>', $text);
+							$text = str_replace($match[0], $match[1] . str_replace('{FORUM_NAME}', $forum_names[$match[6]], htmlspecialchars_decode($this->config['martin_localurltotext_forum'])) . '</a>', $text);
 						}
 						break;
 					case 'p':
@@ -300,7 +300,7 @@ class listener implements EventSubscriberInterface
 							$text = str_replace($match[0], $match[1] . str_replace(
 								array('{USER_NAME}', '{POST_SUBJECT}', '{TOPIC_TITLE}', '{FORUM_NAME}', '{POST_OR_TOPIC_TITLE}'),
 								array($user_names[$post_infos[$match[6]]['user_id']], $post_infos[$match[6]]['subject'], $topic_infos[$post_infos[$match[6]]['topic_id']]['title'], $forum_names[$post_infos[$match[6]]['forum_id']], ($post_infos[$match[6]]['subject'] == '' ? $topic_infos[$post_infos[$match[6]]['topic_id']]['title'] : $post_infos[$match[6]]['subject'])),
-								htmlspecialchars_decode($this->config['Martin_LocalUrlToText_post'])
+								htmlspecialchars_decode($this->config['martin_localurltotext_post'])
 							) . '</a>', $text);
 						}
 						break;
@@ -310,14 +310,14 @@ class listener implements EventSubscriberInterface
 							$text = str_replace($match[0], $match[1] . str_replace(
 								array('{TOPIC_TITLE}', '{FORUM_NAME}'),
 								array($topic_infos[$match[6]]['title'], $forum_names[$topic_infos[$match[6]]['forum_id']]),
-								htmlspecialchars_decode($this->config['Martin_LocalUrlToText_topic'])
+								htmlspecialchars_decode($this->config['martin_localurltotext_topic'])
 							) . '</a>', $text);
 							break;
 						}
 					case 'u':
 						if (isset($user_names[$match[6]]))
 						{
-							$text = str_replace($match[0], $match[1] . str_replace('{USER_NAME}', $user_names[$match[6]], htmlspecialchars_decode($this->config['Martin_LocalUrlToText_user'])) . '</a>', $text);
+							$text = str_replace($match[0], $match[1] . str_replace('{USER_NAME}', $user_names[$match[6]], htmlspecialchars_decode($this->config['martin_localurltotext_user'])) . '</a>', $text);
 							break;
 						}
 				}
