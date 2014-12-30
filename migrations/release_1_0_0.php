@@ -13,7 +13,7 @@ class release_1_0_0 extends \phpbb\db\migration\migration
 {
 	public function effectively_installed()
 	{
-		return isset($this->config['martin_localurltotext_forum']);
+		return isset($this->config['martin_localurltotext_version']) && version_compare($this->config['martin_localurltotext_version'], '1.0.0', '>=');
 	}
 
 	static public function depends_on()
@@ -24,6 +24,7 @@ class release_1_0_0 extends \phpbb\db\migration\migration
 	public function update_data()
 	{
 		return array(
+			array('config.add', array('martin_localurltotext_version', '1.0.0')),
 			array('config.add', array('martin_localurltotext_forum', '{FORUM_NAME}')),
 			array('config.add', array('martin_localurltotext_topic', '{TOPIC_TITLE}')),
 			array('config.add', array('martin_localurltotext_post', '{USER_NAME} @ {TOPIC_TITLE}')),

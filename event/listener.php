@@ -34,7 +34,7 @@ class listener implements EventSubscriberInterface
 	protected $auth;  
 
 	/* @var \phpbb\db\driver\driver_interface */
-	protected $bd;
+	protected $db;
 
 	/** @var string */
 	protected $php_ext;
@@ -53,6 +53,11 @@ class listener implements EventSubscriberInterface
 		$this->auth = $auth;
 		$this->db = $db;
 		$this->php_ext = $php_ext;
+
+		define('LOCALURLTOTEXT_TYPE_FORUM', 1);
+		define('LOCALURLTOTEXT_TYPE_TOPIC', 2);
+		define('LOCALURLTOTEXT_TYPE_POST', 3);
+		define('LOCALURLTOTEXT_TYPE_USER', 4);
 	}
 
 	/**
@@ -74,7 +79,7 @@ class listener implements EventSubscriberInterface
 
 		if (preg_match_all('#(<a\s+?class="postlink-local"\s+?href="' . preg_quote($board_url) . '/(viewforum|viewtopic|memberlist)\.' . $this->php_ext . '([^"]*?)"[^>]*?>)([^<]+?)</a>#si', $text, $matches, PREG_SET_ORDER))
 		{
-			$forum_ids = $forum_names = $topic_ids = $topic_infos = $post_ids = $post_infos =  $user_ids = $user_names = array();
+			$forum_ids = $forum_names = $topic_ids = $topic_infos = $post_ids = $post_infos =  $user_ids = $user_infos = array();
 
 			// get all forum, post, topic and user ids that need to by fetched from the DB
 			foreach ($matches as $k => $match)
@@ -82,7 +87,7 @@ class listener implements EventSubscriberInterface
 				// we store type and ID of the link, so we don't need to preg_match() again later
 				// [5] stores the type of the link (forum, post, topic, user);
 				// [6] stores the ID
-				$matches[$k][5] = '';
+				$matches[$k][5] = 0;
 				$matches[$k][6] = 0;
 				switch ($match[2])
 				{
@@ -93,7 +98,7 @@ class listener implements EventSubscriberInterface
 							if ($this->auth->acl_get('f_read', $id[1]))
 							{
 								$forum_ids[] = $id[1];
-								$matches[$k][5] = 'f';
+								$matches[$k][5] = LOCALURLTOTEXT_TYPE_FORUM;
 								$matches[$k][6] = $id[1];
 							}
 						}
@@ -102,13 +107,13 @@ class listener implements EventSubscriberInterface
 						if (preg_match('/(?:\?|&|&amp;)p=(\d+)/', $match[3], $id))
 						{
 							$post_ids[] = $id[1];
-							$matches[$k][5] = 'p';
+							$matches[$k][5] = LOCALURLTOTEXT_TYPE_POST;
 							$matches[$k][6] = $id[1];
 						}
 						else if (preg_match('/(?:\?|&|&amp;)t=(\d+)/', $match[3], $id))
 						{
 							$topic_ids[] = $id[1];
-							$matches[$k][5] = 't';
+							$matches[$k][5] = LOCALURLTOTEXT_TYPE_TOPIC;
 							$matches[$k][6] = $id[1];
 						}
 						break;
@@ -116,7 +121,7 @@ class listener implements EventSubscriberInterface
 						if (strpos($match[3], 'mode=viewprofile') !== false && preg_match('/(?:\?|&|&amp;)u=(\d+)/', $match[3], $id))
 						{
 							$user_ids[] = $id[1];
-							$matches[$k][5] = 'u';
+							$matches[$k][5] = LOCALURLTOTEXT_TYPE_USER;
 							$matches[$k][6] = $id[1];
 						}
 						break;
@@ -137,7 +142,7 @@ class listener implements EventSubscriberInterface
 				$user_ids_to_remove = array();
 
 				$sql_ary = array(
-					'SELECT'		=> 'p.post_id, p.post_subject, t.topic_id, t.topic_title, f.forum_id, f.forum_name, u.user_id, u.username',
+					'SELECT'		=> 'p.post_id, p.post_subject, t.topic_id, t.topic_title, f.forum_id, f.forum_name, u.user_id, u.username, u.user_colour',
 					'FROM'			=> array(POSTS_TABLE => 'p'),
 					'LEFT_JOIN'		=> array(
 						array(
@@ -180,7 +185,10 @@ class listener implements EventSubscriberInterface
 					}
 					if ($row['user_id'] != null)
 					{
-						$user_names[$row['user_id']] = $row['username'];
+						$user_infos[$row['user_id']] = array(
+							'username'		=> $row['username'],
+							'usercolour'	=> ($row['user_colour'] == '' ? 'inherit' : '#' . $row['user_colour']),
+						);
 						$user_ids_to_remove[] = $row['user_id'];
 					}
 					if ($row['forum_id'] != null && $this->auth->acl_get('f_read', $row['forum_id']))
@@ -266,7 +274,7 @@ class listener implements EventSubscriberInterface
 			if (sizeof($user_ids))
 			{
 				$sql_ary = array(
-					'SELECT'	=> 'u.user_id, u.username',
+					'SELECT'	=> 'u.user_id, u.username, u.user_colour',
 					'FROM'		=> array(USERS_TABLE => 'u'),
 					'WHERE'		=> $this->db->sql_in_set('u.user_id', $user_ids),
 				);
@@ -276,7 +284,10 @@ class listener implements EventSubscriberInterface
 				{
 					if ($row['user_id'] != null)
 					{
-						$user_names[$row['user_id']] = $row['username'];
+						$user_infos[$row['user_id']] = array(
+							'username'		=> $row['username'],
+							'usercolour'	=> ($row['user_colour'] == '' ? 'inherit' : '#' . $row['user_colour']),
+						);
 					}
 				}
 				$this->db->sql_freeresult($result);
@@ -288,23 +299,25 @@ class listener implements EventSubscriberInterface
 			{
 				switch ($match[5])
 				{
-					case 'f':
+					case LOCALURLTOTEXT_TYPE_FORUM:
 						if (isset($forum_names[$match[6]]))
 						{
 							$text = str_replace($match[0], $match[1] . str_replace('{FORUM_NAME}', $forum_names[$match[6]], htmlspecialchars_decode($this->config['martin_localurltotext_forum'])) . '</a>', $text);
 						}
-						break;
-					case 'p':
+					break;
+
+					case LOCALURLTOTEXT_TYPE_POST:
 						if (isset($post_infos[$match[6]]))
 						{
 							$text = str_replace($match[0], $match[1] . str_replace(
-								array('{USER_NAME}', '{POST_SUBJECT}', '{TOPIC_TITLE}', '{FORUM_NAME}', '{POST_OR_TOPIC_TITLE}'),
-								array($user_names[$post_infos[$match[6]]['user_id']], $post_infos[$match[6]]['subject'], $topic_infos[$post_infos[$match[6]]['topic_id']]['title'], $forum_names[$post_infos[$match[6]]['forum_id']], ($post_infos[$match[6]]['subject'] == '' ? $topic_infos[$post_infos[$match[6]]['topic_id']]['title'] : $post_infos[$match[6]]['subject'])),
+								array('{USER_NAME}', '{USER_COLOUR}', '{POST_SUBJECT}', '{TOPIC_TITLE}', '{FORUM_NAME}', '{POST_OR_TOPIC_TITLE}'),
+								array($user_infos[$post_infos[$match[6]]['user_id']]['username'], $user_infos[$post_infos[$match[6]]['user_id']]['usercolour'], $post_infos[$match[6]]['subject'], $topic_infos[$post_infos[$match[6]]['topic_id']]['title'], $forum_names[$post_infos[$match[6]]['forum_id']], ($post_infos[$match[6]]['subject'] == '' ? $topic_infos[$post_infos[$match[6]]['topic_id']]['title'] : $post_infos[$match[6]]['subject'])),
 								htmlspecialchars_decode($this->config['martin_localurltotext_post'])
 							) . '</a>', $text);
 						}
-						break;
-					case 't':
+					break;
+
+					case LOCALURLTOTEXT_TYPE_TOPIC:
 						if (isset($topic_infos[$match[6]]))
 						{
 							$text = str_replace($match[0], $match[1] . str_replace(
@@ -312,14 +325,23 @@ class listener implements EventSubscriberInterface
 								array($topic_infos[$match[6]]['title'], $forum_names[$topic_infos[$match[6]]['forum_id']]),
 								htmlspecialchars_decode($this->config['martin_localurltotext_topic'])
 							) . '</a>', $text);
-							break;
 						}
-					case 'u':
-						if (isset($user_names[$match[6]]))
+					break;
+
+					case LOCALURLTOTEXT_TYPE_USER:
+						if (isset($user_infos[$match[6]]))
 						{
-							$text = str_replace($match[0], $match[1] . str_replace('{USER_NAME}', $user_names[$match[6]], htmlspecialchars_decode($this->config['martin_localurltotext_user'])) . '</a>', $text);
-							break;
+							$text = str_replace($match[0], $match[1] . str_replace(
+								array('{USER_NAME}', '{USER_COLOUR}'),
+								array($user_infos[$match[6]]['username'], $user_infos[$match[6]]['usercolour']),
+								htmlspecialchars_decode($this->config['martin_localurltotext_user'])
+							) . '</a>', $text);
 						}
+					break;
+
+					default:
+						// unknown match type - no replacements
+					break;
 				}
 			}
 

@@ -21,8 +21,8 @@ So when a topic gets renamed, all links to this topic will display the new topic
 The following replacements are available:
 * For forum or category links: forum/category name
 * For topic links: topic title, forum name of containing forum
-* For post links: poster user name, post subject, topic title, forum name, topic title (only if post subject is empty)
-* For member profile links: user name
+* For post links: poster user name, poster user colour, post subject, topic title, forum name, topic title (only if post subject is empty)
+* For member profile links: user name, user colour
 
 ## Authorization
 

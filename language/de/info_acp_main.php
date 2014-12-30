@@ -26,7 +26,7 @@ $lang = array_merge($lang, array(
 	'ACP_LOCALURLTOTEXT_TOPIC'			=> 'Platzhalter für den Themen-Linktext',
 	'ACP_LOCALURLTOTEXT_TOPIC_EXPLAIN'	=> 'Eingabe des Platzhalters, HTML ist möglich. Mögliche Variablen: {TOPIC_TITLE}, {FORUM_NAME}',
 	'ACP_LOCALURLTOTEXT_POST'			=> 'Platzhalter für den Beitrags-Linktext',
-	'ACP_LOCALURLTOTEXT_POST_EXPLAIN'	=> 'Eingabe des Platzhalters, HTML ist möglich. Mögliche Variablen: {USER_NAME}, {POST_SUBJECT}, {TOPIC_TITLE}, {POST_OR_TOPIC_TITLE}, {FORUM_NAME}',
+	'ACP_LOCALURLTOTEXT_POST_EXPLAIN'	=> 'Eingabe des Platzhalters, HTML ist möglich. Mögliche Variablen: {USER_NAME}, {USER_COLOUR}, {POST_SUBJECT}, {TOPIC_TITLE}, {POST_OR_TOPIC_TITLE}, {FORUM_NAME}',
 	'ACP_LOCALURLTOTEXT_USER'			=> 'Platzhalter für den Mitglieds-Linktext',
-	'ACP_LOCALURLTOTEXT_USER_EXPLAIN'	=> 'Eingabe des Platzhalters, HTML ist möglich. Mögliche Variablen: {USER_NAME}',
+	'ACP_LOCALURLTOTEXT_USER_EXPLAIN'	=> 'Eingabe des Platzhalters, HTML ist möglich. Mögliche Variablen: {USER_NAME}, {USER_COLOUR}',
 ));
