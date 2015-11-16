@@ -2,7 +2,7 @@
 /**
 *
 * @package phpBB Extension - martin localurltotext
-* @copyright (c) 2014 Martin ( https://github.com/Martin-G- )
+* @copyright (c) 2015 Martin ( https://github.com/Martin-G- )
 * @license http://opensource.org/licenses/gpl-2.0.php GNU General Public License v2
 *
 */
@@ -31,7 +31,7 @@ class listener implements EventSubscriberInterface
 	protected $config;
 
 	/* @var \phpbb\auth */
-	protected $auth;  
+	protected $auth;
 
 	/* @var \phpbb\db\driver\driver_interface */
 	protected $db;
@@ -43,7 +43,7 @@ class listener implements EventSubscriberInterface
 	* Constructor
 	*
 	* @param \phpbb\config\config				$config
-	* @param \phpbb\auth\auth					$auth  
+	* @param \phpbb\auth\auth					$auth
 	* @param \phpbb\db\driver\driver_interface	$db
 	* @param string								$php_ext
 	*/
@@ -62,7 +62,7 @@ class listener implements EventSubscriberInterface
 
 	/**
 	* Function to replace the text of html links that phpBB automatically parsed
-	* (<a class="postlink-local" href="URL">TEXT</a>) with a custom text, made up of 
+	* (<a class="postlink-local" href="URL">TEXT</a>) with a custom text, made up of
 	* configurable placeholders. Works for forum, topic, post and member profile links.
 	* NB: only the output to the visitors user agent is altered, the data in the
 	* database is unchanged.
@@ -70,7 +70,7 @@ class listener implements EventSubscriberInterface
 	* @param	object		$event	The event object
 	* @return	null
 	* @access	public
-	*/ 
+	*/
 	public function local_url_to_text($event)
 	{
 		$text = $event['text'];
@@ -202,7 +202,7 @@ class listener implements EventSubscriberInterface
 					}
 				}
 				$this->db->sql_freeresult($result);
-				
+
 				$forum_ids = array_diff($forum_ids, $forum_ids_to_remove);
 				$topic_ids = array_diff($topic_ids, $topic_ids_to_remove);
 				$user_ids = array_diff($user_ids, $user_ids_to_remove);
@@ -246,7 +246,7 @@ class listener implements EventSubscriberInterface
 					}
 				}
 				$this->db->sql_freeresult($result);
-				
+
 				$forum_ids = array_diff($forum_ids, $forum_ids_to_remove);
 			}
 
