@@ -2,7 +2,7 @@
 /**
 *
 * @package phpBB Extension - martin localurltotext
-* @copyright (c) 2015 Martin ( https://github.com/Martin-G- )
+* @copyright (c) 2015 Martin ( https://github.com/Mar-tin-G )
 * @license http://opensource.org/licenses/gpl-2.0.php GNU General Public License v2
 *
 */
