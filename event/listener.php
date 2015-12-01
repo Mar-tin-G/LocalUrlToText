@@ -77,6 +77,20 @@ class listener implements EventSubscriberInterface
 		$board_url = generate_board_url();
 		$matches = array();
 
+		/*
+		 * search for all links on the whole page with one expensive preg_match_all() call.
+		 * the regular expression matches:
+		 * <a class="postlink-local" href="{YOUR BOARD URL}/{SCRIPT FILE}.{PHP FILE EXTENSION}{PARAMETERS}">{TEXT}</a>
+		 *
+		 * the $matches array then contains for each single match:
+		 * [0] the matched links opening anchor tag '<a ...>'
+		 * [1] the TEXT content of the <a> element
+		 * [2] the linked phpBB SCRIPT FILE - either 'viewforum', 'viewtopic' or 'memberlist'
+		 * [3] the PARAMETERS like '?f=123&t=456' or '?p=789'
+		 * [4] (unused)
+		 * [5] filled later with link type
+		 * [6] filled later with resource ID
+		 */
 		if (preg_match_all('#(<a\s+?class="postlink-local"\s+?href="' . preg_quote($board_url) . '/(viewforum|viewtopic|memberlist)\.' . $this->php_ext . '([^"]*?)"[^>]*?>)([^<]+?)</a>#si', $text, $matches, PREG_SET_ORDER))
 		{
 			$forum_ids = $forum_names = $topic_ids = $topic_infos = $post_ids = $post_infos =  $user_ids = $user_infos = array();
@@ -84,9 +98,7 @@ class listener implements EventSubscriberInterface
 			// get all forum, post, topic and user ids that need to by fetched from the DB
 			foreach ($matches as $k => $match)
 			{
-				// we store type and ID of the link, so we don't need to preg_match() again later
-				// [5] stores the type of the link (forum, post, topic, user);
-				// [6] stores the ID
+				// we store link type and resource id so we don't need to preg_match() again later
 				$matches[$k][5] = 0;
 				$matches[$k][6] = 0;
 				switch ($match[2])
@@ -95,6 +107,7 @@ class listener implements EventSubscriberInterface
 						if (preg_match('/(?:\?|&|&amp;)f=(\d+)/', $match[3], $id))
 						{
 							// auth: check if the logged in user is allowed to read in this forum
+							// TODO: or move all auth checking to sql query section, see below?
 							if ($this->auth->acl_get('f_read', $id[1]))
 							{
 								$forum_ids[] = $id[1];
@@ -106,12 +119,14 @@ class listener implements EventSubscriberInterface
 					case 'viewtopic':
 						if (preg_match('/(?:\?|&|&amp;)p=(\d+)/', $match[3], $id))
 						{
+							// TODO: need to check auth to read this post (may be in a forum that is not readable)?
 							$post_ids[] = $id[1];
 							$matches[$k][5] = LOCALURLTOTEXT_TYPE_POST;
 							$matches[$k][6] = $id[1];
 						}
 						else if (preg_match('/(?:\?|&|&amp;)t=(\d+)/', $match[3], $id))
 						{
+							// TODO: need to check auth to read this topic (may be in a forum that is not readable)?
 							$topic_ids[] = $id[1];
 							$matches[$k][5] = LOCALURLTOTEXT_TYPE_TOPIC;
 							$matches[$k][6] = $id[1];
@@ -137,9 +152,7 @@ class listener implements EventSubscriberInterface
 			// forum names and user names from one single query
 			if (sizeof($post_ids))
 			{
-				$forum_ids_to_remove = array();
-				$topic_ids_to_remove = array();
-				$user_ids_to_remove = array();
+				$forum_ids_to_remove = $topic_ids_to_remove = $user_ids_to_remove = array();
 
 				$sql_ary = array(
 					'SELECT'		=> 'p.post_id, p.post_subject, t.topic_id, t.topic_title, f.forum_id, f.forum_name, u.user_id, u.username, u.user_colour',
@@ -170,7 +183,7 @@ class listener implements EventSubscriberInterface
 						{
 							$topic_infos[$row['topic_id']] = array(
 								'title'		=> $row['topic_title'],
-								'forum_id'	=> $row['forum_id']
+								'forum_id'	=> $row['forum_id'],
 							);
 						}
 						$topic_ids_to_remove[] = $row['topic_id'];
@@ -208,6 +221,7 @@ class listener implements EventSubscriberInterface
 				$user_ids = array_diff($user_ids, $user_ids_to_remove);
 			}
 
+			// TODO: refactor? seems similarly to above code
 			// if there are topic IDs left to be fetched, we execute this query next, because
 			// perhaps this query fetches also the missing forum names
 			if (sizeof($topic_ids))
@@ -233,7 +247,7 @@ class listener implements EventSubscriberInterface
 					{
 						$topic_infos[$row['topic_id']] = array(
 							'title'		=> $row['topic_title'],
-							'forum_id'	=> $row['forum_id']
+							'forum_id'	=> $row['forum_id'],
 						);
 					}
 					if ($row['forum_id'] != null)
@@ -262,6 +276,7 @@ class listener implements EventSubscriberInterface
 				$result = $this->db->sql_query($sql);
 				while ($row = $this->db->sql_fetchrow($result))
 				{
+					// TODO: auth missing?
 					if ($row['forum_id'] != null)
 					{
 						$forum_names[$row['forum_id']] = $row['forum_name'];
@@ -302,40 +317,86 @@ class listener implements EventSubscriberInterface
 					case LOCALURLTOTEXT_TYPE_FORUM:
 						if (isset($forum_names[$match[6]]))
 						{
-							$text = str_replace($match[0], $match[1] . str_replace('{FORUM_NAME}', $forum_names[$match[6]], htmlspecialchars_decode($this->config['martin_localurltotext_forum'])) . '</a>', $text);
+							$text = str_replace(
+								$match[0],
+								$match[1] . str_replace(
+									'{FORUM_NAME}',
+									$forum_names[$match[6]],
+									htmlspecialchars_decode($this->config['martin_localurltotext_forum'])
+								) . '</a>',
+								$text
+							);
 						}
 					break;
 
 					case LOCALURLTOTEXT_TYPE_POST:
 						if (isset($post_infos[$match[6]]))
 						{
-							$text = str_replace($match[0], $match[1] . str_replace(
-								array('{USER_NAME}', '{USER_COLOUR}', '{POST_SUBJECT}', '{TOPIC_TITLE}', '{FORUM_NAME}', '{POST_OR_TOPIC_TITLE}'),
-								array($user_infos[$post_infos[$match[6]]['user_id']]['username'], $user_infos[$post_infos[$match[6]]['user_id']]['usercolour'], $post_infos[$match[6]]['subject'], $topic_infos[$post_infos[$match[6]]['topic_id']]['title'], $forum_names[$post_infos[$match[6]]['forum_id']], ($post_infos[$match[6]]['subject'] == '' ? $topic_infos[$post_infos[$match[6]]['topic_id']]['title'] : $post_infos[$match[6]]['subject'])),
-								htmlspecialchars_decode($this->config['martin_localurltotext_post'])
-							) . '</a>', $text);
+							$text = str_replace(
+								$match[0],
+								$match[1] . str_replace(
+									array(
+										'{USER_NAME}',
+										'{USER_COLOUR}',
+										'{POST_SUBJECT}',
+										'{TOPIC_TITLE}',
+										'{FORUM_NAME}',
+										'{POST_OR_TOPIC_TITLE}',
+									),
+									array(
+										$user_infos[$post_infos[$match[6]]['user_id']]['username'],
+										$user_infos[$post_infos[$match[6]]['user_id']]['usercolour'],
+										$post_infos[$match[6]]['subject'],
+										$topic_infos[$post_infos[$match[6]]['topic_id']]['title'],
+										$forum_names[$post_infos[$match[6]]['forum_id']],
+										($post_infos[$match[6]]['subject'] == '' ? $topic_infos[$post_infos[$match[6]]['topic_id']]['title'] : $post_infos[$match[6]]['subject']),
+									),
+									htmlspecialchars_decode($this->config['martin_localurltotext_post'])
+								) . '</a>',
+								$text
+							);
 						}
 					break;
 
 					case LOCALURLTOTEXT_TYPE_TOPIC:
 						if (isset($topic_infos[$match[6]]))
 						{
-							$text = str_replace($match[0], $match[1] . str_replace(
-								array('{TOPIC_TITLE}', '{FORUM_NAME}'),
-								array($topic_infos[$match[6]]['title'], $forum_names[$topic_infos[$match[6]]['forum_id']]),
-								htmlspecialchars_decode($this->config['martin_localurltotext_topic'])
-							) . '</a>', $text);
+							$text = str_replace(
+								$match[0],
+								$match[1] . str_replace(
+									array(
+										'{TOPIC_TITLE}',
+										'{FORUM_NAME}',
+									),
+									array(
+										$topic_infos[$match[6]]['title'],
+										$forum_names[$topic_infos[$match[6]]['forum_id']],
+									),
+									htmlspecialchars_decode($this->config['martin_localurltotext_topic'])
+								) . '</a>',
+								$text
+							);
 						}
 					break;
 
 					case LOCALURLTOTEXT_TYPE_USER:
 						if (isset($user_infos[$match[6]]))
 						{
-							$text = str_replace($match[0], $match[1] . str_replace(
-								array('{USER_NAME}', '{USER_COLOUR}'),
-								array($user_infos[$match[6]]['username'], $user_infos[$match[6]]['usercolour']),
-								htmlspecialchars_decode($this->config['martin_localurltotext_user'])
-							) . '</a>', $text);
+							$text = str_replace(
+								$match[0],
+								$match[1] . str_replace(
+									array(
+										'{USER_NAME}',
+										'{USER_COLOUR}',
+									),
+									array(
+										$user_infos[$match[6]]['username'],
+										$user_infos[$match[6]]['usercolour'],
+									),
+									htmlspecialchars_decode($this->config['martin_localurltotext_user'])
+								) . '</a>',
+								$text
+							);
 						}
 					break;
 
