@@ -106,27 +106,27 @@ class listener implements EventSubscriberInterface
 					case 'viewforum':
 						if (preg_match('/(?:\?|&|&amp;)f=(\d+)/', $match[3], $id))
 						{
-							// auth: check if the logged in user is allowed to read in this forum
-							// TODO: or move all auth checking to sql query section, see below?
-							if ($this->auth->acl_get('f_read', $id[1]))
-							{
-								$forum_ids[] = $id[1];
-								$matches[$k][5] = LOCALURLTOTEXT_TYPE_FORUM;
-								$matches[$k][6] = $id[1];
-							}
+							$forum_ids[] = $id[1];
+							$matches[$k][5] = LOCALURLTOTEXT_TYPE_FORUM;
+							$matches[$k][6] = $id[1];
 						}
 						break;
 					case 'viewtopic':
 						if (preg_match('/(?:\?|&|&amp;)p=(\d+)/', $match[3], $id))
 						{
-							// TODO: need to check auth to read this post (may be in a forum that is not readable)?
+							$post_ids[] = $id[1];
+							$matches[$k][5] = LOCALURLTOTEXT_TYPE_POST;
+							$matches[$k][6] = $id[1];
+						}
+						// handle link 'viewtopic?...#pxxx' too, see https://github.com/Mar-tin-G/LocalUrlToText/issues/7
+						else if (preg_match('/#p(\d+)/', $match[3], $id))
+						{
 							$post_ids[] = $id[1];
 							$matches[$k][5] = LOCALURLTOTEXT_TYPE_POST;
 							$matches[$k][6] = $id[1];
 						}
 						else if (preg_match('/(?:\?|&|&amp;)t=(\d+)/', $match[3], $id))
 						{
-							// TODO: need to check auth to read this topic (may be in a forum that is not readable)?
 							$topic_ids[] = $id[1];
 							$matches[$k][5] = LOCALURLTOTEXT_TYPE_TOPIC;
 							$matches[$k][6] = $id[1];
@@ -148,6 +148,7 @@ class listener implements EventSubscriberInterface
 			$post_ids = array_unique($post_ids);
 			$user_ids = array_unique($user_ids);
 
+			// TODO: possible to get all information in one query? where post_id in (...) OR topic_id in (...) ...
 			// first fetch the posts from the DB, since if we're lucky we get all needed topic titles,
 			// forum names and user names from one single query
 			if (sizeof($post_ids))
@@ -221,7 +222,7 @@ class listener implements EventSubscriberInterface
 				$user_ids = array_diff($user_ids, $user_ids_to_remove);
 			}
 
-			// TODO: refactor? seems similarly to above code
+			// TODO: refactor? seems similar to above code
 			// if there are topic IDs left to be fetched, we execute this query next, because
 			// perhaps this query fetches also the missing forum names
 			if (sizeof($topic_ids))
@@ -276,8 +277,7 @@ class listener implements EventSubscriberInterface
 				$result = $this->db->sql_query($sql);
 				while ($row = $this->db->sql_fetchrow($result))
 				{
-					// TODO: auth missing?
-					if ($row['forum_id'] != null)
+					if ($row['forum_id'] != null && $this->auth->acl_get('f_read', $row['forum_id']))
 					{
 						$forum_names[$row['forum_id']] = $row['forum_name'];
 					}
