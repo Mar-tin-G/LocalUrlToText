@@ -39,6 +39,12 @@ class listener implements EventSubscriberInterface
 	/** @var string */
 	protected $php_ext;
 
+	/** @var array */
+	protected $ids_to_fetch;
+
+	/** @var array */
+	protected $infos;
+
 	/**
 	* Constructor
 	*
@@ -53,6 +59,13 @@ class listener implements EventSubscriberInterface
 		$this->auth = $auth;
 		$this->db = $db;
 		$this->php_ext = $php_ext;
+
+		$this->ids_to_fetch = $this->infos = array();
+		foreach (['forum', 'topic', 'post', 'user'] as $resource)
+		{
+			$this->ids_to_fetch[$resource]	= array();
+			$this->infos[$resource]			= array();
+		}
 
 		define('LOCALURLTOTEXT_TYPE_FORUM', 1);
 		define('LOCALURLTOTEXT_TYPE_TOPIC', 2);
@@ -83,18 +96,16 @@ class listener implements EventSubscriberInterface
 		 * <a class="postlink-local" href="{YOUR BOARD URL}/{SCRIPT FILE}.{PHP FILE EXTENSION}{PARAMETERS}">{TEXT}</a>
 		 *
 		 * the $matches array then contains for each single match:
-		 * [0] the matched links opening anchor tag '<a ...>'
-		 * [1] the TEXT content of the <a> element
+		 * [0] the full match
+		 * [1] the full opening anchor tag '<a ...>' of the matched link
 		 * [2] the linked phpBB SCRIPT FILE - either 'viewforum', 'viewtopic' or 'memberlist'
 		 * [3] the PARAMETERS like '?f=123&t=456' or '?p=789'
-		 * [4] (unused)
+		 * [4] the TEXT content of the <a> element (unused, this is what we replace)
 		 * [5] filled later with link type
 		 * [6] filled later with resource ID
 		 */
 		if (preg_match_all('#(<a\s+?class="postlink-local"\s+?href="' . preg_quote($board_url) . '/(viewforum|viewtopic|memberlist)\.' . $this->php_ext . '([^"]*?)"[^>]*?>)([^<]+?)</a>#si', $text, $matches, PREG_SET_ORDER))
 		{
-			$forum_ids = $forum_names = $topic_ids = $topic_infos = $post_ids = $post_infos =  $user_ids = $user_infos = array();
-
 			// get all forum, post, topic and user ids that need to by fetched from the DB
 			foreach ($matches as $k => $match)
 			{
@@ -106,7 +117,7 @@ class listener implements EventSubscriberInterface
 					case 'viewforum':
 						if (preg_match('/(?:\?|&|&amp;)f=(\d+)/', $match[3], $id))
 						{
-							$forum_ids[] = $id[1];
+							$this->ids_to_fetch['forum'][] = $id[1];
 							$matches[$k][5] = LOCALURLTOTEXT_TYPE_FORUM;
 							$matches[$k][6] = $id[1];
 						}
@@ -114,20 +125,20 @@ class listener implements EventSubscriberInterface
 					case 'viewtopic':
 						if (preg_match('/(?:\?|&|&amp;)p=(\d+)/', $match[3], $id))
 						{
-							$post_ids[] = $id[1];
+							$this->ids_to_fetch['post'][] = $id[1];
 							$matches[$k][5] = LOCALURLTOTEXT_TYPE_POST;
 							$matches[$k][6] = $id[1];
 						}
 						// handle link 'viewtopic?...#pxxx' too, see https://github.com/Mar-tin-G/LocalUrlToText/issues/7
 						else if (preg_match('/#p(\d+)/', $match[3], $id))
 						{
-							$post_ids[] = $id[1];
+							$this->ids_to_fetch['post'][] = $id[1];
 							$matches[$k][5] = LOCALURLTOTEXT_TYPE_POST;
 							$matches[$k][6] = $id[1];
 						}
 						else if (preg_match('/(?:\?|&|&amp;)t=(\d+)/', $match[3], $id))
 						{
-							$topic_ids[] = $id[1];
+							$this->ids_to_fetch['topic'][] = $id[1];
 							$matches[$k][5] = LOCALURLTOTEXT_TYPE_TOPIC;
 							$matches[$k][6] = $id[1];
 						}
@@ -135,7 +146,7 @@ class listener implements EventSubscriberInterface
 					case 'memberlist':
 						if (strpos($match[3], 'mode=viewprofile') !== false && preg_match('/(?:\?|&|&amp;)u=(\d+)/', $match[3], $id))
 						{
-							$user_ids[] = $id[1];
+							$this->ids_to_fetch['user'][] = $id[1];
 							$matches[$k][5] = LOCALURLTOTEXT_TYPE_USER;
 							$matches[$k][6] = $id[1];
 						}
@@ -143,18 +154,15 @@ class listener implements EventSubscriberInterface
 				}
 			}
 
-			$forum_ids = array_unique($forum_ids);
-			$topic_ids = array_unique($topic_ids);
-			$post_ids = array_unique($post_ids);
-			$user_ids = array_unique($user_ids);
+			foreach (['forum', 'topic', 'post', 'user'] as $resource)
+			{
+				$this->ids_to_fetch[$resource] = array_unique($this->ids_to_fetch[$resource]);
+			}
 
-			// TODO: possible to get all information in one query? where post_id in (...) OR topic_id in (...) ...
 			// first fetch the posts from the DB, since if we're lucky we get all needed topic titles,
 			// forum names and user names from one single query
-			if (sizeof($post_ids))
+			if (sizeof($this->ids_to_fetch['post']))
 			{
-				$forum_ids_to_remove = $topic_ids_to_remove = $user_ids_to_remove = array();
-
 				$sql_ary = array(
 					'SELECT'		=> 'p.post_id, p.post_subject, t.topic_id, t.topic_title, f.forum_id, f.forum_name, u.user_id, u.username, u.user_colour',
 					'FROM'			=> array(POSTS_TABLE => 'p'),
@@ -172,63 +180,15 @@ class listener implements EventSubscriberInterface
 							'ON'	=> 'p.poster_id = u.user_id',
 						),
 					),
-					'WHERE'			=> $this->db->sql_in_set('p.post_id', $post_ids),
+					'WHERE'			=> $this->db->sql_in_set('p.post_id', $this->ids_to_fetch['post']),
 				);
-				$sql = $this->db->sql_build_query('SELECT', $sql_ary);
-				$result = $this->db->sql_query($sql);
-				while ($row = $this->db->sql_fetchrow($result))
-				{
-					if ($row['topic_id'] != null)
-					{
-						if ($row['forum_id'] != null && $this->auth->acl_get('f_read', $row['forum_id']))
-						{
-							$topic_infos[$row['topic_id']] = array(
-								'title'		=> $row['topic_title'],
-								'forum_id'	=> $row['forum_id'],
-							);
-						}
-						$topic_ids_to_remove[] = $row['topic_id'];
-					}
-					if ($row['forum_id'] != null)
-					{
-						if ($this->auth->acl_get('f_read', $row['forum_id']))
-						{
-							$forum_names[$row['forum_id']] = $row['forum_name'];
-						}
-						$forum_ids_to_remove[] = $row['forum_id'];
-					}
-					if ($row['user_id'] != null)
-					{
-						$user_infos[$row['user_id']] = array(
-							'username'		=> $row['username'],
-							'usercolour'	=> ($row['user_colour'] == '' ? 'inherit' : '#' . $row['user_colour']),
-						);
-						$user_ids_to_remove[] = $row['user_id'];
-					}
-					if ($row['forum_id'] != null && $this->auth->acl_get('f_read', $row['forum_id']))
-					{
-						$post_infos[$row['post_id']] = array(
-							'user_id'	=> $row['user_id'] ,
-							'topic_id'	=> $row['topic_id'],
-							'forum_id'	=> $row['forum_id'],
-							'subject'	=> $row['post_subject'],
-						);
-					}
-				}
-				$this->db->sql_freeresult($result);
-
-				$forum_ids = array_diff($forum_ids, $forum_ids_to_remove);
-				$topic_ids = array_diff($topic_ids, $topic_ids_to_remove);
-				$user_ids = array_diff($user_ids, $user_ids_to_remove);
+				$this->fetch_from_db($sql_ary);
 			}
 
-			// TODO: refactor? seems similar to above code
 			// if there are topic IDs left to be fetched, we execute this query next, because
 			// perhaps this query fetches also the missing forum names
-			if (sizeof($topic_ids))
+			if ($this->ids_to_fetch['topic'])
 			{
-				$forum_ids_to_remove = array();
-
 				$sql_ary = array(
 					'SELECT'		=> 't.topic_id, t.topic_title, f.forum_id, f.forum_name',
 					'FROM'			=> array(TOPICS_TABLE => 't'),
@@ -238,74 +198,31 @@ class listener implements EventSubscriberInterface
 							'ON'	=> 't.forum_id = f.forum_id',
 						),
 					),
-					'WHERE'			=> $this->db->sql_in_set('t.topic_id', $topic_ids),
+					'WHERE'			=> $this->db->sql_in_set('t.topic_id', $this->ids_to_fetch['topic']),
 				);
-				$sql = $this->db->sql_build_query('SELECT', $sql_ary);
-				$result = $this->db->sql_query($sql);
-				while ($row = $this->db->sql_fetchrow($result))
-				{
-					if ($row['topic_id'] != null && $row['forum_id'] != null && $this->auth->acl_get('f_read', $row['forum_id']))
-					{
-						$topic_infos[$row['topic_id']] = array(
-							'title'		=> $row['topic_title'],
-							'forum_id'	=> $row['forum_id'],
-						);
-					}
-					if ($row['forum_id'] != null)
-					{
-						if ($this->auth->acl_get('f_read', $row['forum_id']))
-						{
-							$forum_names[$row['forum_id']] = $row['forum_name'];
-						}
-						$forum_ids_to_remove[] = $row['forum_id'];
-					}
-				}
-				$this->db->sql_freeresult($result);
-
-				$forum_ids = array_diff($forum_ids, $forum_ids_to_remove);
+				$this->fetch_from_db($sql_ary);
 			}
 
 			// bad luck, still forum IDs left, we have to query a third time...
-			if (sizeof($forum_ids))
+			if (sizeof($this->ids_to_fetch['forum']))
 			{
 				$sql_ary = array(
 					'SELECT'	=> 'f.forum_id, f.forum_name',
 					'FROM'		=> array(FORUMS_TABLE => 'f'),
-					'WHERE'		=> $this->db->sql_in_set('f.forum_id', $forum_ids),
+					'WHERE'		=> $this->db->sql_in_set('f.forum_id', $this->ids_to_fetch['forum']),
 				);
-				$sql = $this->db->sql_build_query('SELECT', $sql_ary);
-				$result = $this->db->sql_query($sql);
-				while ($row = $this->db->sql_fetchrow($result))
-				{
-					if ($row['forum_id'] != null && $this->auth->acl_get('f_read', $row['forum_id']))
-					{
-						$forum_names[$row['forum_id']] = $row['forum_name'];
-					}
-				}
-				$this->db->sql_freeresult($result);
+				$this->fetch_from_db($sql_ary);
 			}
 
 			// ... and a fourth time for the missing user names
-			if (sizeof($user_ids))
+			if (sizeof($this->ids_to_fetch['user']))
 			{
 				$sql_ary = array(
 					'SELECT'	=> 'u.user_id, u.username, u.user_colour',
 					'FROM'		=> array(USERS_TABLE => 'u'),
-					'WHERE'		=> $this->db->sql_in_set('u.user_id', $user_ids),
+					'WHERE'		=> $this->db->sql_in_set('u.user_id', $this->ids_to_fetch['user']),
 				);
-				$sql = $this->db->sql_build_query('SELECT', $sql_ary);
-				$result = $this->db->sql_query($sql);
-				while ($row = $this->db->sql_fetchrow($result))
-				{
-					if ($row['user_id'] != null)
-					{
-						$user_infos[$row['user_id']] = array(
-							'username'		=> $row['username'],
-							'usercolour'	=> ($row['user_colour'] == '' ? 'inherit' : '#' . $row['user_colour']),
-						);
-					}
-				}
-				$this->db->sql_freeresult($result);
+				$this->fetch_from_db($sql_ary);
 			}
 
 			// now that all topic titles, forum names and user names are fetched, we begin
@@ -315,13 +232,13 @@ class listener implements EventSubscriberInterface
 				switch ($match[5])
 				{
 					case LOCALURLTOTEXT_TYPE_FORUM:
-						if (isset($forum_names[$match[6]]))
+						if (isset($this->infos['forum'][$match[6]]))
 						{
 							$text = str_replace(
 								$match[0],
 								$match[1] . str_replace(
 									'{FORUM_NAME}',
-									$forum_names[$match[6]],
+									$this->infos['forum'][$match[6]]['name'],
 									htmlspecialchars_decode($this->config['martin_localurltotext_forum'])
 								) . '</a>',
 								$text
@@ -330,7 +247,7 @@ class listener implements EventSubscriberInterface
 					break;
 
 					case LOCALURLTOTEXT_TYPE_POST:
-						if (isset($post_infos[$match[6]]))
+						if (isset($this->infos['post'][$match[6]]))
 						{
 							$text = str_replace(
 								$match[0],
@@ -344,12 +261,12 @@ class listener implements EventSubscriberInterface
 										'{POST_OR_TOPIC_TITLE}',
 									),
 									array(
-										$user_infos[$post_infos[$match[6]]['user_id']]['username'],
-										$user_infos[$post_infos[$match[6]]['user_id']]['usercolour'],
-										$post_infos[$match[6]]['subject'],
-										$topic_infos[$post_infos[$match[6]]['topic_id']]['title'],
-										$forum_names[$post_infos[$match[6]]['forum_id']],
-										($post_infos[$match[6]]['subject'] == '' ? $topic_infos[$post_infos[$match[6]]['topic_id']]['title'] : $post_infos[$match[6]]['subject']),
+										$this->infos['user'][$this->infos['post'][$match[6]]['user_id']]['username'],
+										$this->infos['user'][$this->infos['post'][$match[6]]['user_id']]['usercolour'],
+										$this->infos['post'][$match[6]]['subject'],
+										$this->infos['topic'][$this->infos['post'][$match[6]]['topic_id']]['title'],
+										$this->infos['forum'][$this->infos['post'][$match[6]]['forum_id']]['name'],
+										($this->infos['post'][$match[6]]['subject'] == '' ? $this->infos['topic'][$this->infos['post'][$match[6]]['topic_id']]['title'] : $this->infos['post'][$match[6]]['subject']),
 									),
 									htmlspecialchars_decode($this->config['martin_localurltotext_post'])
 								) . '</a>',
@@ -359,7 +276,7 @@ class listener implements EventSubscriberInterface
 					break;
 
 					case LOCALURLTOTEXT_TYPE_TOPIC:
-						if (isset($topic_infos[$match[6]]))
+						if (isset($this->infos['topic'][$match[6]]))
 						{
 							$text = str_replace(
 								$match[0],
@@ -369,8 +286,8 @@ class listener implements EventSubscriberInterface
 										'{FORUM_NAME}',
 									),
 									array(
-										$topic_infos[$match[6]]['title'],
-										$forum_names[$topic_infos[$match[6]]['forum_id']],
+										$this->infos['topic'][$match[6]]['title'],
+										$this->infos['forum'][$this->infos['topic'][$match[6]]['forum_id']]['name'],
 									),
 									htmlspecialchars_decode($this->config['martin_localurltotext_topic'])
 								) . '</a>',
@@ -380,7 +297,7 @@ class listener implements EventSubscriberInterface
 					break;
 
 					case LOCALURLTOTEXT_TYPE_USER:
-						if (isset($user_infos[$match[6]]))
+						if (isset($this->infos['user'][$match[6]]))
 						{
 							$text = str_replace(
 								$match[0],
@@ -390,8 +307,8 @@ class listener implements EventSubscriberInterface
 										'{USER_COLOUR}',
 									),
 									array(
-										$user_infos[$match[6]]['username'],
-										$user_infos[$match[6]]['usercolour'],
+										$this->infos['user'][$match[6]]['username'],
+										$this->infos['user'][$match[6]]['usercolour'],
 									),
 									htmlspecialchars_decode($this->config['martin_localurltotext_user'])
 								) . '</a>',
@@ -407,6 +324,77 @@ class listener implements EventSubscriberInterface
 			}
 
 			$event['text'] = $text;
+		}
+	}
+
+	/**
+	* Fetch information about resources from the database.
+	* Saves the fetched information to $infos property and removes ids of
+	* already fetched resources from $ids_to_fetch property.
+	*
+	* @param	array		$sql_ary	Valid array for DBAL sql_build_query()
+	* @return	null
+	* @access	private
+	*/
+	private function fetch_from_db($sql_ary) {
+		$ids_to_remove = array();
+		foreach (['forum', 'topic', 'post', 'user'] as $resource)
+		{
+			$ids_to_remove[$resource] = array();
+		}
+
+		$sql = $this->db->sql_build_query('SELECT', $sql_ary);
+		$result = $this->db->sql_query($sql);
+		while ($row = $this->db->sql_fetchrow($result))
+		{
+			if (isset($row['forum_id']))
+			{
+				if ($this->auth->acl_get('f_read', $row['forum_id']))
+				{
+					$this->infos['forum'][$row['forum_id']] = array(
+						'name'	=> $row['forum_name'],
+					);
+				}
+				$ids_to_remove['forum'][] = $row['forum_id'];
+			}
+			if (isset($row['topic_id']))
+			{
+				if (isset($row['forum_id']) && $this->auth->acl_get('f_read', $row['forum_id']))
+				{
+					$this->infos['topic'][$row['topic_id']] = array(
+						'title'		=> $row['topic_title'],
+						'forum_id'	=> $row['forum_id'],
+					);
+				}
+				$ids_to_remove['topic'][] = $row['topic_id'];
+			}
+			if (isset($row['post_id']))
+			{
+				if (isset($row['forum_id']) && $this->auth->acl_get('f_read', $row['forum_id']))
+				{
+					$this->infos['post'][$row['post_id']] = array(
+						'user_id'	=> $row['user_id'] ,
+						'topic_id'	=> $row['topic_id'],
+						'forum_id'	=> $row['forum_id'],
+						'subject'	=> $row['post_subject'],
+					);
+				}
+				$ids_to_remove['post'][] = $row['post_id'];
+			}
+			if (isset($row['user_id']))
+			{
+				$this->infos['user'][$row['user_id']] = array(
+					'username'		=> $row['username'],
+					'usercolour'	=> ($row['user_colour'] == '' ? 'inherit' : '#' . $row['user_colour']),
+				);
+				$ids_to_remove['user'][] = $row['user_id'];
+			}
+		}
+		$this->db->sql_freeresult($result);
+
+		foreach (['forum', 'topic', 'post', 'user'] as $resource)
+		{
+			$this->ids_to_fetch[$resource] = array_diff($this->ids_to_fetch[$resource], $ids_to_remove[$resource]);
 		}
 	}
 }
