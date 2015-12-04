@@ -11,14 +11,14 @@ namespace martin\localurltotext\acp;
 
 class main_module
 {
-	var $u_action;
+	public $u_action;
+	public $tpl_name;
+	public $page_title;
 
-	function main($id, $mode)
+	public function main($id, $mode)
 	{
-		global $db, $user, $auth, $template, $cache, $request;
-		global $config, $phpbb_root_path, $phpbb_admin_path, $phpEx;
+		global $user, $template, $request, $config;
 
-		$user->add_lang('acp/common');
 		$this->tpl_name = 'localurltotext_body';
 		$this->page_title = $user->lang('ACP_LOCALURLTOTEXT_TITLE');
 		add_form_key('martin/localurltotext');
@@ -27,6 +27,7 @@ class main_module
 		{
 			if (!check_form_key('martin/localurltotext'))
 			{
+				$user->add_lang('acp/common');
 				trigger_error('FORM_INVALID');
 			}
 
@@ -35,7 +36,7 @@ class main_module
 			$config->set('martin_localurltotext_post', $request->variable('martin_localurltotext_post', ''));
 			$config->set('martin_localurltotext_user', $request->variable('martin_localurltotext_user', ''));
 
-			trigger_error($user->lang('ACP_LOCALURLTOTEXT_SETTING_SAVED') . adm_back_link($this->u_action));
+			trigger_error($user->lang('ACP_LOCALURLTOTEXT_SETTING_SAVED'). adm_back_link($this->u_action));
 		}
 
 		$template->assign_vars(array(

@@ -11,7 +11,7 @@ namespace martin\localurltotext\acp;
 
 class main_info
 {
-	function module()
+	public function module()
 	{
 		return array(
 			'filename'	=> '\martin\localurltotext\acp\main_module',

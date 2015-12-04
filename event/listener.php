@@ -12,6 +12,9 @@ namespace martin\localurltotext\event;
 /**
 * @ignore
 */
+use phpbb\config\config;
+use phpbb\auth\auth;
+use phpbb\db\driver\driver_interface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -27,33 +30,33 @@ class listener implements EventSubscriberInterface
 		);
 	}
 
-	/* @var \phpbb\config\config */
+	/* @var config */
 	protected $config;
 
-	/* @var \phpbb\auth */
+	/* @var auth */
 	protected $auth;
 
-	/* @var \phpbb\db\driver\driver_interface */
+	/* @var driver_interface */
 	protected $db;
 
-	/** @var string */
+	/* @var string */
 	protected $php_ext;
 
-	/** @var array */
+	/* @var array */
 	protected $ids_to_fetch;
 
-	/** @var array */
+	/* @var array */
 	protected $infos;
 
 	/**
 	* Constructor
 	*
-	* @param \phpbb\config\config				$config
-	* @param \phpbb\auth\auth					$auth
-	* @param \phpbb\db\driver\driver_interface	$db
-	* @param string								$php_ext
+	* @param config				$config
+	* @param auth				$auth
+	* @param driver_interface	$db
+	* @param string				$php_ext
 	*/
-	public function __construct(\phpbb\config\config $config, \phpbb\auth\auth $auth, \phpbb\db\driver\driver_interface $db, $php_ext)
+	public function __construct(config $config, auth $auth, driver_interface $db, $php_ext)
 	{
 		$this->config = $config;
 		$this->auth = $auth;
