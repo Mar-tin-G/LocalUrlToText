@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<dataset>
+	<table name="phpbb_forums">
+		<column>forum_id</column>
+		<column>forum_name</column>
+		<row>
+			<value>1</value>
+			<value>First forum</value>
+		</row>
+		<row>
+			<value>42</value>
+			<value>Admin forum</value>
+		</row>
+	</table>
+	<table name="phpbb_topics">
+		<column>topic_id</column>
+		<column>topic_title</column>
+		<column>forum_id</column>
+		<row>
+			<value>1</value>
+			<value>Topic 1 title</value>
+			<value>1</value>
+		</row>
+		<row>
+			<value>42</value>
+			<value>Admin topic title</value>
+			<value>42</value>
+		</row>
+	</table>
+	<table name="phpbb_posts">
+		<column>post_id</column>
+		<column>post_subject</column>
+		<column>topic_id</column>
+		<column>poster_id</column>
+		<row>
+			<value>1</value>
+			<value>Post 1 subject</value>
+			<value>1</value>
+			<value>1</value>
+		</row>
+		<row>
+			<value>42</value>
+			<value></value>
+			<value>42</value>
+			<value>42</value>
+		</row>
+	</table>
+	<table name="phpbb_users">
+		<column>user_id</column>
+		<column>username</column>
+		<column>username_clean</column>
+		<column>user_colour</column>
+		<row>
+			<value>1</value>
+			<value>heinz</value>
+			<value>heinz</value>
+			<value>c0ffee</value>
+		</row>
+		<row>
+			<value>42</value>
+			<value>admin</value>
+			<value>admin</value>
+			<value>ff0000</value>
+		</row>
+	</table>
+</dataset>

@@ -30,22 +30,22 @@ class listener implements EventSubscriberInterface
 		);
 	}
 
-	/* @var config */
+	/** @var config */
 	protected $config;
 
-	/* @var auth */
+	/** @var auth */
 	protected $auth;
 
-	/* @var driver_interface */
+	/** @var driver_interface */
 	protected $db;
 
-	/* @var string */
+	/** @var string */
 	protected $php_ext;
 
-	/* @var array */
+	/** @var array */
 	protected $ids_to_fetch;
 
-	/* @var array */
+	/** @var array */
 	protected $infos;
 
 	/**
@@ -77,8 +77,10 @@ class listener implements EventSubscriberInterface
 	}
 
 	/**
-	* Function to replace the text of html links that phpBB automatically parsed
-	* (<a class="postlink-local" href="URL">TEXT</a>) with a custom text, made up of
+	* Replace the text value of links referencing a local URL
+	*
+	* Only links that phpBB automatically parsed are handled, denoted by the format
+	* <a class="postlink-local" href="URL">TEXT</a>. The replacement text is made up of
 	* configurable placeholders. Works for forum, topic, post and member profile links.
 	* NB: only the output to the visitors user agent is altered, the data in the
 	* database is unchanged.
@@ -319,10 +321,6 @@ class listener implements EventSubscriberInterface
 							);
 						}
 					break;
-
-					default:
-						// unknown match type - no replacements
-					break;
 				}
 			}
 
@@ -331,7 +329,8 @@ class listener implements EventSubscriberInterface
 	}
 
 	/**
-	* Fetch information about resources from the database.
+	* Fetch information about resources from the database
+	*
 	* Saves the fetched information to $infos property and removes ids of
 	* already fetched resources from $ids_to_fetch property.
 	*

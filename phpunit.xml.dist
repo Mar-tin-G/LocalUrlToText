@@ -9,6 +9,8 @@
          stopOnFailure="false"
          syntaxCheck="false"
          verbose="true"
+         beStrictAboutTestsThatDoNotTestAnything="true"
+         beStrictAboutOutputDuringTests="true"
          bootstrap="../../../../tests/bootstrap.php"
 >
     <testsuites>
