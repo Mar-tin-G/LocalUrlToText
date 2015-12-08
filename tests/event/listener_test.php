@@ -17,7 +17,8 @@ class listener_test extends \phpbb_database_test_case
 	protected $listener;
 
 	protected $config, $auth, $db, $php_ext, $board_url;
-	protected $auth_acl_map_admin, $auth_acl_map_user;
+	protected $auth_acl_map_admin, $auth_acl_map_user, $auth_acl_map_guest;
+	protected $user, $page_operator;
 
 	/**
 	* Define the extensions to be tested
@@ -43,21 +44,38 @@ class listener_test extends \phpbb_database_test_case
 			'martin_localurltotext_topic'	=> 't: {TOPIC_TITLE}, f: {FORUM_NAME}',
 			'martin_localurltotext_post'	=> 'p: {POST_SUBJECT}, t: {TOPIC_TITLE}, pt: {POST_OR_TOPIC_TITLE}, f: {FORUM_NAME}, u: {USER_NAME}, uc: {USER_COLOUR}',
 			'martin_localurltotext_user'	=> 'u: {USER_NAME}, uc: {USER_COLOUR}',
+			'martin_localurltotext_page'	=> 't: {PAGE_TITLE}',
 		));
 
+		$this->auth_acl_map_guest = array(
+			array('f_read', 1, false),
+			array('f_read', 42, false),
+			array('a_', null, false),
+		);
 		$this->auth_acl_map_user = array(
 			array('f_read', 1, true),
 			array('f_read', 42, false),
+			array('a_', null, false),
 		);
 		$this->auth_acl_map_admin = array(
 			array('f_read', 1, true),
 			array('f_read', 42, true),
+			array('a_', null, true),
 		);
 
 		$this->create_auth();
 
 		$this->db = $this->new_dbal();
 		$this->php_ext = $phpEx;
+
+		$this->user = $this->getMockBuilder('\phpbb\user')
+			->disableOriginalConstructor()
+			->getMock();
+
+		$this->page_operator = $this->getMockBuilder('\phpbb\pages\operators\page')
+			->disableOriginalConstructor()
+			->setMethods(array('get_page_links'))
+			->getMock();
 
 		$this->generate_board_url();
 	}
@@ -71,7 +89,9 @@ class listener_test extends \phpbb_database_test_case
 			$this->config,
 			$this->auth,
 			$this->db,
-			$this->php_ext
+			$this->php_ext,
+			$this->user,
+			$this->page_operator
 		);
 	}
 
@@ -196,8 +216,8 @@ class listener_test extends \phpbb_database_test_case
 			),
 			'user url' => array(
 				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=1">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=1">u: heinz, uc: #c0ffee</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">u: heinz, uc: #c0ffee</a>',
 			),
 			'invalid and nonexistent ids' => array(
 				1,
@@ -208,11 +228,11 @@ class listener_test extends \phpbb_database_test_case
 				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1">some text</a>' .
 					'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1">some text</a>' .
 					'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">some text</a>' .
-					'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=1">some text</a>',
+					'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">some text</a>',
 				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1">p: Post 1 subject, t: Topic 1 title, pt: Post 1 subject, f: First forum, u: heinz, uc: #c0ffee</a>' .
 					'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1">t: Topic 1 title, f: First forum</a>' .
 					'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">f: <i>First forum</i></a>' .
-					'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=1">u: heinz, uc: #c0ffee</a>',
+					'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">u: heinz, uc: #c0ffee</a>',
 			),
 		);
 	}
@@ -245,6 +265,128 @@ class listener_test extends \phpbb_database_test_case
 			$this->create_auth();
 			$this->set_listener();
 			$this->set_auth($this->auth_acl_map_admin);
+
+			$dispatcher = new \Symfony\Component\EventDispatcher\EventDispatcher();
+			$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'local_url_to_text'));
+
+			$event_data = array('text');
+			$event = new \phpbb\event\data(compact($event_data));
+			$dispatcher->dispatch('core.modify_text_for_display_after', $event);
+
+			$event_data_after = $event->get_data_filtered($event_data);
+			$this->assertArrayHasKey('text', $event_data_after);
+
+			$this->assertEquals($expected_admin, $event_data_after['text']);
+		}
+	}
+
+	/**
+	* Data set for test_local_url_to_text_pages
+	*/
+	public function local_url_to_text_pages_data()
+	{
+		global $phpEx;
+
+		$this->generate_board_url();
+
+		/*
+		first value: original text
+		second value: expected text for guests
+		third value - if specified: expected text for users; if not specified: expected text for users = expected text for guests
+		fourth value - if specified: expected text for admins; if not specified: expected text for admins = expected text for users
+		*/
+		return array(
+			'page url without mod_rewrite' => array(
+				'<a class="postlink-local" href="'. $this->board_url .'/app.'. $phpEx .'/page/guestpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/app.'. $phpEx .'/page/guestpage">t: Guest page</a>',
+			),
+			'guest visible page url' => array(
+				'<a class="postlink-local" href="'. $this->board_url .'/page/guestpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/guestpage">t: Guest page</a>',
+			),
+			'member visible page url' => array(
+				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">t: Member page</a>',
+			),
+			'admin visible page url' => array(
+				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">t: Admin page</a>',
+			),
+		);
+	}
+
+	/**
+	* Test local_url_to_text integration with Pages extension
+	*
+	* @dataProvider local_url_to_text_pages_data
+	*/
+	public function test_local_url_to_text_pages($text, $expected_guest, $expected_user = false, $expected_admin = false)
+	{
+		$this->page_operator
+			->method('get_page_links')
+			->willReturn(array(
+				array(
+					'page_route'				=> 'guestpage',
+					'page_display'				=> true,
+					'page_display_to_guests'	=> true,
+					'page_title'				=> 'Guest page',
+				),
+				array(
+					'page_route'				=> 'memberpage',
+					'page_display'				=> true,
+					'page_display_to_guests'	=> false,
+					'page_title'				=> 'Member page',
+				),
+				array(
+					'page_route'				=> 'adminpage',
+					'page_display'				=> false,
+					'page_display_to_guests'	=> false,
+					'page_title'				=> 'Admin page',
+				),
+			));
+
+		$this->set_listener();
+		$this->set_auth($this->auth_acl_map_guest);
+		$this->user->data['user_id'] = ANONYMOUS;
+
+		$dispatcher = new \Symfony\Component\EventDispatcher\EventDispatcher();
+		$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'local_url_to_text'));
+
+		$event_data = array('text');
+		$event = new \phpbb\event\data(compact($event_data));
+		$dispatcher->dispatch('core.modify_text_for_display_after', $event);
+
+		$event_data_after = $event->get_data_filtered($event_data);
+		$this->assertArrayHasKey('text', $event_data_after);
+		$this->assertEquals($expected_guest, $event_data_after['text']);
+
+		if ($expected_user !== false) {
+			$this->create_auth();
+			$this->set_listener();
+			$this->set_auth($this->auth_acl_map_user);
+			$this->user->data['user_id'] = 2;
+
+			$dispatcher = new \Symfony\Component\EventDispatcher\EventDispatcher();
+			$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'local_url_to_text'));
+
+			$event_data = array('text');
+			$event = new \phpbb\event\data(compact($event_data));
+			$dispatcher->dispatch('core.modify_text_for_display_after', $event);
+
+			$event_data_after = $event->get_data_filtered($event_data);
+			$this->assertArrayHasKey('text', $event_data_after);
+
+			$this->assertEquals($expected_user, $event_data_after['text']);
+		}
+
+		if ($expected_admin !== false) {
+			$this->create_auth();
+			$this->set_listener();
+			$this->set_auth($this->auth_acl_map_admin);
+			$this->user->data['user_id'] = 42;
 
 			$dispatcher = new \Symfony\Component\EventDispatcher\EventDispatcher();
 			$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'local_url_to_text'));

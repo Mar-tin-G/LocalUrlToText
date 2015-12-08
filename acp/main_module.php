@@ -33,8 +33,9 @@ class main_module
 
 			$config->set('martin_localurltotext_forum', $request->variable('martin_localurltotext_forum', ''));
 			$config->set('martin_localurltotext_topic', $request->variable('martin_localurltotext_topic', ''));
-			$config->set('martin_localurltotext_post', $request->variable('martin_localurltotext_post', ''));
-			$config->set('martin_localurltotext_user', $request->variable('martin_localurltotext_user', ''));
+			$config->set('martin_localurltotext_post',  $request->variable('martin_localurltotext_post', ''));
+			$config->set('martin_localurltotext_user',  $request->variable('martin_localurltotext_user', ''));
+			$config->set('martin_localurltotext_page',  $request->variable('martin_localurltotext_page', ''));
 
 			trigger_error($user->lang('ACP_LOCALURLTOTEXT_SETTING_SAVED'). adm_back_link($this->u_action));
 		}
@@ -45,6 +46,7 @@ class main_module
 			'MARTIN_LOCALURLTOTEXT_TOPIC'	=> $config['martin_localurltotext_topic'],
 			'MARTIN_LOCALURLTOTEXT_POST'	=> $config['martin_localurltotext_post'],
 			'MARTIN_LOCALURLTOTEXT_USER'	=> $config['martin_localurltotext_user'],
+			'MARTIN_LOCALURLTOTEXT_PAGE'	=> $config['martin_localurltotext_page'],
 		));
 	}
 }

@@ -29,4 +29,6 @@ $lang = array_merge($lang, array(
 	'ACP_LOCALURLTOTEXT_POST_EXPLAIN'	=> 'Eingabe des Platzhalters, HTML ist möglich. Mögliche Variablen: {USER_NAME}, {USER_COLOUR}, {POST_SUBJECT}, {TOPIC_TITLE}, {POST_OR_TOPIC_TITLE}, {FORUM_NAME}',
 	'ACP_LOCALURLTOTEXT_USER'			=> 'Platzhalter für den Mitglieds-Linktext',
 	'ACP_LOCALURLTOTEXT_USER_EXPLAIN'	=> 'Eingabe des Platzhalters, HTML ist möglich. Mögliche Variablen: {USER_NAME}, {USER_COLOUR}',
+	'ACP_LOCALURLTOTEXT_PAGE'			=> 'Platzhalter für den Pages-Linktext',
+	'ACP_LOCALURLTOTEXT_PAGE_EXPLAIN'	=> 'Für die <a href="https://www.phpbb.com/customise/db/extension/pages/" target="_blank">Pages-Extension</a>. Eingabe des Platzhalters, HTML ist möglich. Mögliche Variablen: {PAGE_TITLE}',
 ));

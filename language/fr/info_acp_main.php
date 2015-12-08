@@ -30,4 +30,6 @@ $lang = array_merge($lang, array(
 	'ACP_LOCALURLTOTEXT_POST_EXPLAIN'	=> 'Saisir l’espace réservé, HTML est autorisé. Les variables disponibles sont : {USER_NAME}, {USER_COLOUR}, {POST_SUBJECT}, {TOPIC_TITLE}, {POST_OR_TOPIC_TITLE}, {FORUM_NAME}.',
 	'ACP_LOCALURLTOTEXT_USER'			=> 'Espace réservé pour le texte du lien de l’utilisateur',
 	'ACP_LOCALURLTOTEXT_USER_EXPLAIN'	=> 'Saisir l’espace réservé, HTML est autorisé. Les variables disponibles sont : {USER_NAME}, {USER_COLOUR}.',
+	'ACP_LOCALURLTOTEXT_PAGE'			=> 'Placeholder for Pages link text',
+	'ACP_LOCALURLTOTEXT_PAGE_EXPLAIN'	=> 'For the <a href="https://www.phpbb.com/customise/db/extension/pages/" target="_blank">Pages extension</a>. Enter placeholder, HTML is allowed. Available variables: {PAGE_TITLE}',
 ));

@@ -36,7 +36,7 @@
 			<value>1</value>
 			<value>Post 1 subject</value>
 			<value>1</value>
-			<value>1</value>
+			<value>2</value>
 		</row>
 		<row>
 			<value>42</value>
@@ -51,7 +51,7 @@
 		<column>username_clean</column>
 		<column>user_colour</column>
 		<row>
-			<value>1</value>
+			<value>2</value>
 			<value>heinz</value>
 			<value>heinz</value>
 			<value>c0ffee</value>

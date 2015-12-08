@@ -16,6 +16,7 @@ use phpbb\config\config;
 use phpbb\auth\auth;
 use phpbb\db\driver\driver_interface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use phpbb\user;
 
 /**
 * Event listener
@@ -42,6 +43,12 @@ class listener implements EventSubscriberInterface
 	/** @var string */
 	protected $php_ext;
 
+	/** @var user */
+	protected $user;
+
+	/** @var \phpbb\pages\operators\page */
+	protected $page_operator;
+
 	/** @var array */
 	protected $ids_to_fetch;
 
@@ -51,20 +58,24 @@ class listener implements EventSubscriberInterface
 	/**
 	* Constructor
 	*
-	* @param config				$config
-	* @param auth				$auth
-	* @param driver_interface	$db
-	* @param string				$php_ext
+	* @param config							$config
+	* @param auth							$auth
+	* @param driver_interface				$db
+	* @param string							$php_ext
+	* @param user							$user
+	* @param \phpbb\pages\operators\page	$page_operator
 	*/
-	public function __construct(config $config, auth $auth, driver_interface $db, $php_ext)
+	public function __construct(config $config, auth $auth, driver_interface $db, $php_ext, $user, \phpbb\pages\operators\page $page_operator = null)
 	{
 		$this->config = $config;
 		$this->auth = $auth;
 		$this->db = $db;
 		$this->php_ext = $php_ext;
+		$this->user = $user;
+		$this->page_operator = $page_operator;
 
 		$this->ids_to_fetch = $this->infos = array();
-		foreach (['forum', 'topic', 'post', 'user'] as $resource)
+		foreach (['forum', 'topic', 'post', 'user', 'page'] as $resource)
 		{
 			$this->ids_to_fetch[$resource]	= array();
 			$this->infos[$resource]			= array();
@@ -74,6 +85,7 @@ class listener implements EventSubscriberInterface
 		define('LOCALURLTOTEXT_TYPE_TOPIC', 2);
 		define('LOCALURLTOTEXT_TYPE_POST', 3);
 		define('LOCALURLTOTEXT_TYPE_USER', 4);
+		define('LOCALURLTOTEXT_TYPE_PAGE', 5);
 	}
 
 	/**
@@ -104,12 +116,14 @@ class listener implements EventSubscriberInterface
 		 * [0] the full match
 		 * [1] the full opening anchor tag '<a ...>' of the matched link
 		 * [2] the linked phpBB SCRIPT FILE - either 'viewforum', 'viewtopic' or 'memberlist'
+		 *     also, if extension Pages is installed (see https://www.phpbb.com/customise/db/extension/pages/),
+		 *     look for 'app.php/page/' (without mod_rewrite) and 'page/' (with mod_rewrite)
 		 * [3] the PARAMETERS like '?f=123&t=456' or '?p=789'
 		 * [4] the TEXT content of the <a> element (unused, this is what we replace)
 		 * [5] filled later with link type
 		 * [6] filled later with resource ID
 		 */
-		if (preg_match_all('#(<a\s+?class="postlink-local"\s+?href="' . preg_quote($board_url) . '/(viewforum|viewtopic|memberlist)\.' . $this->php_ext . '([^"]*?)"[^>]*?>)([^<]+?)</a>#si', $text, $matches, PREG_SET_ORDER))
+		if (preg_match_all('#(<a\s+?class="postlink-local"\s+?href="' . preg_quote($board_url) . '/(?|(viewforum|viewtopic|memberlist)\.' . $this->php_ext . '|(app\.' . $this->php_ext . '/page/|page/))([^"]*?)"[^>]*?>)([^<]+?)</a>#si', $text, $matches, PREG_SET_ORDER))
 		{
 			// get all forum, post, topic and user ids that need to by fetched from the DB
 			foreach ($matches as $k => $match)
@@ -126,7 +140,8 @@ class listener implements EventSubscriberInterface
 							$matches[$k][5] = LOCALURLTOTEXT_TYPE_FORUM;
 							$matches[$k][6] = $id[1];
 						}
-						break;
+					break;
+
 					case 'viewtopic':
 						if (preg_match('/(?:\?|&|&amp;)p=(\d+)/', $match[3], $id))
 						{
@@ -147,7 +162,8 @@ class listener implements EventSubscriberInterface
 							$matches[$k][5] = LOCALURLTOTEXT_TYPE_TOPIC;
 							$matches[$k][6] = $id[1];
 						}
-						break;
+					break;
+
 					case 'memberlist':
 						if (strpos($match[3], 'mode=viewprofile') !== false && preg_match('/(?:\?|&|&amp;)u=(\d+)/', $match[3], $id))
 						{
@@ -155,11 +171,23 @@ class listener implements EventSubscriberInterface
 							$matches[$k][5] = LOCALURLTOTEXT_TYPE_USER;
 							$matches[$k][6] = $id[1];
 						}
-						break;
+					break;
+
+					// for Pages extension
+					case 'app.' . $this->php_ext . '/page/':
+					case 'page/':
+						// page routes may contain: letters, numbers, hyphens and underscores
+						if (preg_match('/([a-zA-Z0-9_-]+)/', $match[3], $id))
+						{
+							$this->ids_to_fetch['page'][] = $id[1];
+							$matches[$k][5] = LOCALURLTOTEXT_TYPE_PAGE;
+							$matches[$k][6] = $id[1];
+						}
+					break;
 				}
 			}
 
-			foreach (['forum', 'topic', 'post', 'user'] as $resource)
+			foreach (['forum', 'topic', 'post', 'user', 'page'] as $resource)
 			{
 				$this->ids_to_fetch[$resource] = array_unique($this->ids_to_fetch[$resource]);
 			}
@@ -228,6 +256,27 @@ class listener implements EventSubscriberInterface
 					'WHERE'		=> $this->db->sql_in_set('u.user_id', $this->ids_to_fetch['user']),
 				);
 				$this->fetch_from_db($sql_ary);
+			}
+
+			// fetch information about pages from Pages extension
+			if (sizeof($this->ids_to_fetch['page']) && $this->page_operator)
+			{
+				$ids_to_remove = array();
+
+				$rowset = $this->page_operator->get_page_links();
+				foreach ($rowset as $row)
+				{
+					// Skip page if it should not be displayed (admins always have access to a page)
+					if ((!$row['page_display'] && !$this->auth->acl_get('a_', null)) || (!$row['page_display_to_guests'] && $this->user->data['user_id'] == ANONYMOUS))
+					{
+						continue;
+					}
+					$this->infos['page'][$row['page_route']] = array(
+						'page_title' => $row['page_title'],
+					);
+					$ids_to_remove[] = $row['page_route'];
+				}
+				$this->ids_to_fetch['page'] = array_diff($this->ids_to_fetch['page'], $ids_to_remove);
 			}
 
 			// now that all topic titles, forum names and user names are fetched, we begin
@@ -321,6 +370,25 @@ class listener implements EventSubscriberInterface
 							);
 						}
 					break;
+
+					case LOCALURLTOTEXT_TYPE_PAGE:
+						if (isset($this->infos['page'][$match[6]]))
+						{
+							$text = str_replace(
+								$match[0],
+								$match[1] . str_replace(
+									array(
+										'{PAGE_TITLE}',
+									),
+									array(
+										$this->infos['page'][$match[6]]['page_title'],
+									),
+									htmlspecialchars_decode($this->config['martin_localurltotext_page'])
+								) . '</a>',
+								$text
+							);
+						}
+					break;
 				}
 			}
 
@@ -375,7 +443,7 @@ class listener implements EventSubscriberInterface
 				if (isset($row['forum_id']) && $this->auth->acl_get('f_read', $row['forum_id']))
 				{
 					$this->infos['post'][$row['post_id']] = array(
-						'user_id'	=> $row['user_id'] ,
+						'user_id'	=> $row['user_id'],
 						'topic_id'	=> $row['topic_id'],
 						'forum_id'	=> $row['forum_id'],
 						'subject'	=> $row['post_subject'],
