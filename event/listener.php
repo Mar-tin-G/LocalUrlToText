@@ -110,66 +110,118 @@ class listener implements EventSubscriberInterface
 		/*
 		 * search for all links on the whole page with one expensive preg_match_all() call.
 		 * the regular expression matches:
-		 * <a class="postlink-local" href="{YOUR BOARD URL}/{SCRIPT FILE}.{PHP FILE EXTENSION}{PARAMETERS}">{TEXT}</a>
+		 * <a ... class="... postlink-local ..." ... href="{YOUR BOARD URL}/{SCRIPT FILE}.{PHP FILE EXTENSION}{PARAMETERS}">{TEXT}</a>
 		 *
 		 * the $matches array then contains for each single match:
-		 * [0] the full match
-		 * [1] the full opening anchor tag '<a ...>' of the matched link
-		 * [2] the linked phpBB SCRIPT FILE - either 'viewforum', 'viewtopic' or 'memberlist'
-		 *     also, if extension Pages is installed (see https://www.phpbb.com/customise/db/extension/pages/),
-		 *     look for 'app.php/page/' (without mod_rewrite) and 'page/' (with mod_rewrite)
-		 * [3] the PARAMETERS like '?f=123&t=456' or '?p=789'
-		 * [4] the TEXT content of the <a> element (unused, this is what we replace)
-		 * [5] filled later with link type
-		 * [6] filled later with resource ID
+		 * [0]        the full match
+		 * ['anchor'] the full opening anchor tag '<a ... >' of the matched link
+		 * ['script'] the linked phpBB SCRIPT FILE - either 'viewforum', 'viewtopic' or 'memberlist'
+		 *            also, if extension Pages is installed (see https://www.phpbb.com/customise/db/extension/pages/),
+		 *            look for 'app.php/page/' (without mod_rewrite) and 'page/' (with mod_rewrite)
+		 * ['params'] the PARAMETERS like '?f=123&t=456' or '?p=789'
+		 * ['text']   the TEXT content of the <a> element (unused, this is what we replace)
+		 * ['type']   filled later with link type
+		 * ['id']     filled later with resource ID
 		 */
-		if (preg_match_all('#(<a\s+?class="postlink-local"\s+?href="' . preg_quote($board_url) . '/(?|(viewforum|viewtopic|memberlist)\.' . $this->php_ext . '|(app\.' . $this->php_ext . '/page/|page/))([^"]*?)"[^>]*?>)([^<]+?)</a>#si', $text, $matches, PREG_SET_ORDER))
+
+		// construct the regular expression:
+		// all characters that are not separators (i.e. that do not end attribute or element)
+		$not_sep = '[^"<>]*?';
+		// the class attribute must contain 'postlink-local', but there may be other classes appended or prepended
+		$class = $not_sep . 'postlink-local'. $not_sep;
+		// the href attribute must contain the board url,
+		$href =  preg_quote($board_url) .'/'.
+			// followed by one of the scripts we are looking for,
+			'(?|'.
+				// which is either one of the default scripts in the phpBB root,
+				// NB: (?P<foo>) returns the match of that group as named subpattern 'foo'
+				'(?P<script>viewforum|viewtopic|memberlist)\.'. $this->php_ext .
+				'|'.
+				// or that is the Pages extension script that may either
+				'(?P<script>'.
+					// be called as app.php/page/... (when mod_rewrite is disabled)
+					'app\.'. $this->php_ext .'/page/'.
+					'|'.
+					// or as page/... (when mod_rewrite is enabled)
+					'page/'.
+				')'.
+			')'.
+			// followed by the parameters
+			'(?P<params>'. $not_sep .')';
+
+		// that was hard work - now do some regular expression magic and fetch us some links!
+		if (preg_match_all('#'.
+			// we need the full opening anchor tag <a ... >
+			'(?P<anchor><a'.
+				// the attributes are in arbitrary order, separated by whitespace
+				'(?:\s+'.
+					// the attribute may be one of:
+					'(?:'.
+						// class: we need to match this
+						'class="'. $class .'"'.
+						'|'.
+						// href= we need to match this too
+						'href="'. $href .'"'.
+						'|'.
+						// other attributes are not of interest to us
+						'\w+="'. $not_sep . '"'.
+					')'.
+				')+'.
+			'>)'.
+			// we also need the link text <a ...>text</a>
+			// NB: do not use $not_sep here as the text may contain the " character
+			'(?P<text>[^<]+?)'.
+			'</a>#si',
+			$text, $matches, PREG_SET_ORDER)
+		)
 		{
 			// get all forum, post, topic and user ids that need to by fetched from the DB
 			foreach ($matches as $k => $match)
 			{
 				// we store link type and resource id so we don't need to preg_match() again later
-				$matches[$k][5] = 0;
-				$matches[$k][6] = 0;
-				switch ($match[2])
+				$matches[$k]['type'] = 0;
+				$matches[$k]['id'] = 0;
+				switch ($match['script'])
 				{
 					case 'viewforum':
-						if (preg_match('/(?:\?|&|&amp;)f=(\d+)/', $match[3], $id))
+						// after all of the regular expression magic, this one is fairly easy:
+						// one of '?', '&' or '&amp' followed by 'f=' and the numerical id we are looking for
+						if (preg_match('/(?:\?|&|&amp;)f=(\d+)/', $match['params'], $id))
 						{
 							$this->ids_to_fetch['forum'][] = $id[1];
-							$matches[$k][5] = LOCALURLTOTEXT_TYPE_FORUM;
-							$matches[$k][6] = $id[1];
+							$matches[$k]['type'] = LOCALURLTOTEXT_TYPE_FORUM;
+							$matches[$k]['id'] = $id[1];
 						}
 					break;
 
 					case 'viewtopic':
-						if (preg_match('/(?:\?|&|&amp;)p=(\d+)/', $match[3], $id))
+						if (preg_match('/(?:\?|&|&amp;)p=(\d+)/', $match['params'], $id))
 						{
 							$this->ids_to_fetch['post'][] = $id[1];
-							$matches[$k][5] = LOCALURLTOTEXT_TYPE_POST;
-							$matches[$k][6] = $id[1];
+							$matches[$k]['type'] = LOCALURLTOTEXT_TYPE_POST;
+							$matches[$k]['id'] = $id[1];
 						}
 						// handle link 'viewtopic?...#pxxx' too, see https://github.com/Mar-tin-G/LocalUrlToText/issues/7
-						else if (preg_match('/#p(\d+)/', $match[3], $id))
+						else if (preg_match('/#p(\d+)/', $match['params'], $id))
 						{
 							$this->ids_to_fetch['post'][] = $id[1];
-							$matches[$k][5] = LOCALURLTOTEXT_TYPE_POST;
-							$matches[$k][6] = $id[1];
+							$matches[$k]['type'] = LOCALURLTOTEXT_TYPE_POST;
+							$matches[$k]['id'] = $id[1];
 						}
-						else if (preg_match('/(?:\?|&|&amp;)t=(\d+)/', $match[3], $id))
+						else if (preg_match('/(?:\?|&|&amp;)t=(\d+)/', $match['params'], $id))
 						{
 							$this->ids_to_fetch['topic'][] = $id[1];
-							$matches[$k][5] = LOCALURLTOTEXT_TYPE_TOPIC;
-							$matches[$k][6] = $id[1];
+							$matches[$k]['type'] = LOCALURLTOTEXT_TYPE_TOPIC;
+							$matches[$k]['id'] = $id[1];
 						}
 					break;
 
 					case 'memberlist':
-						if (strpos($match[3], 'mode=viewprofile') !== false && preg_match('/(?:\?|&|&amp;)u=(\d+)/', $match[3], $id))
+						if (strpos($match['params'], 'mode=viewprofile') !== false && preg_match('/(?:\?|&|&amp;)u=(\d+)/', $match['params'], $id))
 						{
 							$this->ids_to_fetch['user'][] = $id[1];
-							$matches[$k][5] = LOCALURLTOTEXT_TYPE_USER;
-							$matches[$k][6] = $id[1];
+							$matches[$k]['type'] = LOCALURLTOTEXT_TYPE_USER;
+							$matches[$k]['id'] = $id[1];
 						}
 					break;
 
@@ -177,11 +229,11 @@ class listener implements EventSubscriberInterface
 					case 'app.' . $this->php_ext . '/page/':
 					case 'page/':
 						// page routes may contain: letters, numbers, hyphens and underscores
-						if (preg_match('/([a-zA-Z0-9_-]+)/', $match[3], $id))
+						if (preg_match('/([a-zA-Z0-9_-]+)/', $match['params'], $id))
 						{
 							$this->ids_to_fetch['page'][] = $id[1];
-							$matches[$k][5] = LOCALURLTOTEXT_TYPE_PAGE;
-							$matches[$k][6] = $id[1];
+							$matches[$k]['type'] = LOCALURLTOTEXT_TYPE_PAGE;
+							$matches[$k]['id'] = $id[1];
 						}
 					break;
 				}
@@ -283,16 +335,16 @@ class listener implements EventSubscriberInterface
 			// and replace the local links with the configured text replacements
 			foreach ($matches as $match)
 			{
-				switch ($match[5])
+				switch ($match['type'])
 				{
 					case LOCALURLTOTEXT_TYPE_FORUM:
-						if (isset($this->infos['forum'][$match[6]]))
+						if (isset($this->infos['forum'][$match['id']]))
 						{
 							$text = str_replace(
 								$match[0],
-								$match[1] . str_replace(
+								$match['anchor'] . str_replace(
 									'{FORUM_NAME}',
-									$this->infos['forum'][$match[6]]['name'],
+									$this->infos['forum'][$match['id']]['name'],
 									htmlspecialchars_decode($this->config['martin_localurltotext_forum'])
 								) . '</a>',
 								$text
@@ -301,11 +353,11 @@ class listener implements EventSubscriberInterface
 					break;
 
 					case LOCALURLTOTEXT_TYPE_POST:
-						if (isset($this->infos['post'][$match[6]]))
+						if (isset($this->infos['post'][$match['id']]))
 						{
 							$text = str_replace(
 								$match[0],
-								$match[1] . str_replace(
+								$match['anchor'] . str_replace(
 									array(
 										'{USER_NAME}',
 										'{USER_COLOUR}',
@@ -315,12 +367,12 @@ class listener implements EventSubscriberInterface
 										'{POST_OR_TOPIC_TITLE}',
 									),
 									array(
-										$this->infos['user'][$this->infos['post'][$match[6]]['user_id']]['username'],
-										$this->infos['user'][$this->infos['post'][$match[6]]['user_id']]['usercolour'],
-										$this->infos['post'][$match[6]]['subject'],
-										$this->infos['topic'][$this->infos['post'][$match[6]]['topic_id']]['title'],
-										$this->infos['forum'][$this->infos['post'][$match[6]]['forum_id']]['name'],
-										($this->infos['post'][$match[6]]['subject'] == '' ? $this->infos['topic'][$this->infos['post'][$match[6]]['topic_id']]['title'] : $this->infos['post'][$match[6]]['subject']),
+										$this->infos['user'][$this->infos['post'][$match['id']]['user_id']]['username'],
+										$this->infos['user'][$this->infos['post'][$match['id']]['user_id']]['usercolour'],
+										$this->infos['post'][$match['id']]['subject'],
+										$this->infos['topic'][$this->infos['post'][$match['id']]['topic_id']]['title'],
+										$this->infos['forum'][$this->infos['post'][$match['id']]['forum_id']]['name'],
+										($this->infos['post'][$match['id']]['subject'] == '' ? $this->infos['topic'][$this->infos['post'][$match['id']]['topic_id']]['title'] : $this->infos['post'][$match['id']]['subject']),
 									),
 									htmlspecialchars_decode($this->config['martin_localurltotext_post'])
 								) . '</a>',
@@ -330,18 +382,18 @@ class listener implements EventSubscriberInterface
 					break;
 
 					case LOCALURLTOTEXT_TYPE_TOPIC:
-						if (isset($this->infos['topic'][$match[6]]))
+						if (isset($this->infos['topic'][$match['id']]))
 						{
 							$text = str_replace(
 								$match[0],
-								$match[1] . str_replace(
+								$match['anchor'] . str_replace(
 									array(
 										'{TOPIC_TITLE}',
 										'{FORUM_NAME}',
 									),
 									array(
-										$this->infos['topic'][$match[6]]['title'],
-										$this->infos['forum'][$this->infos['topic'][$match[6]]['forum_id']]['name'],
+										$this->infos['topic'][$match['id']]['title'],
+										$this->infos['forum'][$this->infos['topic'][$match['id']]['forum_id']]['name'],
 									),
 									htmlspecialchars_decode($this->config['martin_localurltotext_topic'])
 								) . '</a>',
@@ -351,18 +403,18 @@ class listener implements EventSubscriberInterface
 					break;
 
 					case LOCALURLTOTEXT_TYPE_USER:
-						if (isset($this->infos['user'][$match[6]]))
+						if (isset($this->infos['user'][$match['id']]))
 						{
 							$text = str_replace(
 								$match[0],
-								$match[1] . str_replace(
+								$match['anchor'] . str_replace(
 									array(
 										'{USER_NAME}',
 										'{USER_COLOUR}',
 									),
 									array(
-										$this->infos['user'][$match[6]]['username'],
-										$this->infos['user'][$match[6]]['usercolour'],
+										$this->infos['user'][$match['id']]['username'],
+										$this->infos['user'][$match['id']]['usercolour'],
 									),
 									htmlspecialchars_decode($this->config['martin_localurltotext_user'])
 								) . '</a>',
@@ -372,16 +424,16 @@ class listener implements EventSubscriberInterface
 					break;
 
 					case LOCALURLTOTEXT_TYPE_PAGE:
-						if (isset($this->infos['page'][$match[6]]))
+						if (isset($this->infos['page'][$match['id']]))
 						{
 							$text = str_replace(
 								$match[0],
-								$match[1] . str_replace(
+								$match['anchor'] . str_replace(
 									array(
 										'{PAGE_TITLE}',
 									),
 									array(
-										$this->infos['page'][$match[6]]['page_title'],
+										$this->infos['page'][$match['id']]['page_title'],
 									),
 									htmlspecialchars_decode($this->config['martin_localurltotext_page'])
 								) . '</a>',

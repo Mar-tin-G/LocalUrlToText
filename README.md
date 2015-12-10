@@ -13,6 +13,7 @@ Examples:
 * You can also include the name of the forum containing that topic to the link, e.g. _Topic Title (Forum Name)_.
 * Similar text replacements are available for links to posts and to member profile pages.
 * Supports [Pages extension](https://www.phpbb.com/customise/db/extension/pages/)
+* Works with [External Links extension](https://www.phpbb.com/community/viewtopic.php?f=456&t=2270671)
 
 The extension only replaces these links when displaying a message (post, private message, etc.). It does not alter the messages that are stored into the database.
 So when a topic gets renamed, all links to this topic will display the new topic title automatically.
@@ -40,6 +41,7 @@ Initial release.
 
 * Support post links with `#pXXX` parameter
 * Support for links to pages of Pages extension
+* Better link matching to support External Links extension (and other extensions that modify phpBBs generated links)
 
 ## License
 
