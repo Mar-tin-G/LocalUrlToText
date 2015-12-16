@@ -24,6 +24,13 @@
 			<dt><label for="martin_localurltotext_page">{L_ACP_LOCALURLTOTEXT_PAGE}{L_COLON}</label><br /><span>{L_ACP_LOCALURLTOTEXT_PAGE_EXPLAIN}</span></dt>
 			<dd><input type="text" value="{MARTIN_LOCALURLTOTEXT_PAGE}" name="martin_localurltotext_page" maxlength="255" size="40" id="martin_localurltotext_page"></dd>
 		</dl>
+		<dl>
+			<dt><label for="martin_localurltotext_cpf">{L_ACP_LOCALURLTOTEXT_CPF}{L_COLON}</label><br /><span>{L_ACP_LOCALURLTOTEXT_CPF_EXPLAIN}</span></dt>
+			<dd>
+				<label><input type="radio" id="martin_localurltotext_cpf" name="martin_localurltotext_cpf" value="1" class="radio"<!-- IF MARTIN_LOCALURLTOTEXT_CPF == 1 --> checked="checked"<!-- ENDIF--> />{L_YES}</label>
+				<label><input type="radio" id="martin_localurltotext_cpf" name="martin_localurltotext_cpf" value="0" class="radio"<!-- IF MARTIN_LOCALURLTOTEXT_CPF == 0 --> checked="checked"<!-- ENDIF--> />{L_NO}</label>
+			</dd>
+		</dl>
 
 		<p class="submit-buttons">
 			<input class="button1" type="submit" id="submit" name="submit" value="{L_SUBMIT}" />&nbsp;

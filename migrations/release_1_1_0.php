@@ -28,6 +28,7 @@ class release_1_1_0 extends migration
 		return array(
 			array('config.update', array('martin_localurltotext_version', '1.1.0')),
 			array('config.add', array('martin_localurltotext_page', '{PAGE_TITLE}')),
+			array('config.add', array('martin_localurltotext_cpf', 0)),
 		);
 	}
 }

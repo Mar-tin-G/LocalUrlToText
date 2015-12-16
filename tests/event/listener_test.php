@@ -45,6 +45,7 @@ class listener_test extends \phpbb_database_test_case
 			'martin_localurltotext_post'	=> 'p: {POST_SUBJECT}, t: {TOPIC_TITLE}, pt: {POST_OR_TOPIC_TITLE}, f: {FORUM_NAME}, u: {USER_NAME}, uc: {USER_COLOUR}',
 			'martin_localurltotext_user'	=> 'u: {USER_NAME}, uc: {USER_COLOUR}',
 			'martin_localurltotext_page'	=> 't: {PAGE_TITLE}',
+			'martin_localurltotext_cpf'		=> 1,
 		));
 
 		$this->auth_acl_map_guest = array(
@@ -156,15 +157,16 @@ class listener_test extends \phpbb_database_test_case
 		$this->assertEquals(array(
 			'core.modify_text_for_display_after',
 			'core.modify_format_display_text_after',
+			'core.generate_profile_fields_template_data',
 		), array_keys(\martin\localurltotext\event\listener::getSubscribedEvents()));
 	}
 
 	/**
-	* Data set for test_local_url_to_text
+	* Data set for test_modify_post_data
 	*
 	* @return array Array of test data
 	*/
-	public function local_url_to_text_data()
+	public function modify_post_data_data()
 	{
 		global $phpEx;
 
@@ -238,18 +240,18 @@ class listener_test extends \phpbb_database_test_case
 	}
 
 	/**
-	* Test the local_url_to_text event
+	* Test the modify_post_data event
 	*
-	* @dataProvider local_url_to_text_data
+	* @dataProvider modify_post_data_data
 	*/
-	public function test_local_url_to_text($sql_query_count, $text, $expected_user = false, $expected_admin = false)
+	public function test_modify_post_data($sql_query_count, $text, $expected_user = false, $expected_admin = false)
 	{
 		$this->set_listener();
 
 		$this->set_auth($this->auth_acl_map_user);
 
 		$dispatcher = new \Symfony\Component\EventDispatcher\EventDispatcher();
-		$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'local_url_to_text'));
+		$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'modify_post_data'));
 
 		$event_data = array('text');
 		$event = new \phpbb\event\data(compact($event_data));
@@ -267,7 +269,7 @@ class listener_test extends \phpbb_database_test_case
 			$this->set_auth($this->auth_acl_map_admin);
 
 			$dispatcher = new \Symfony\Component\EventDispatcher\EventDispatcher();
-			$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'local_url_to_text'));
+			$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'modify_post_data'));
 
 			$event_data = array('text');
 			$event = new \phpbb\event\data(compact($event_data));
@@ -281,9 +283,74 @@ class listener_test extends \phpbb_database_test_case
 	}
 
 	/**
-	* Data set for test_local_url_to_text_pages
+	* Data set for test_modify_custom_profile_field_data
+	*
+	* @return array Array of test data
 	*/
-	public function local_url_to_text_pages_data()
+	public function modify_custom_profile_field_data_data()
+	{
+		global $phpEx;
+
+		$this->generate_board_url();
+
+		return array(
+			'forum url' => array(
+				array(
+					'blockrow' => array(
+						0 => array(
+							'PROFILE_FIELD_TYPE'	=> 'whatever',
+							'PROFILE_FIELD_VALUE'	=> 'some field we are not interested in - value that must remain unchanged',
+						),
+						1 => array(
+							'PROFILE_FIELD_TYPE'	=> 'profilefields.type.url',
+							'PROFILE_FIELD_VALUE'	=> '<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">some text</a>',
+						),
+					),
+				),
+				array(
+					'blockrow' => array(
+						0 => array(
+							'PROFILE_FIELD_TYPE'	=> 'whatever',
+							'PROFILE_FIELD_VALUE'	=> 'some field we are not interested in - value that must remain unchanged',
+						),
+						1 => array(
+							'PROFILE_FIELD_TYPE'	=> 'profilefields.type.url',
+							'PROFILE_FIELD_VALUE'	=> '<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">f: <i>First forum</i></a>',
+						),
+					),
+				),
+			),
+		);
+	}
+
+	/**
+	* Test the modify_custom_profile_field_data event
+	* Since modify_custom_profile_field_data calls the same private function as modify_post_data, we keep this test simple
+	*
+	* @dataProvider modify_custom_profile_field_data_data
+	*/
+	public function test_modify_custom_profile_field_data($tpl_fields, $expected_tpl_fields)
+	{
+		$this->set_listener();
+
+		$this->set_auth($this->auth_acl_map_user);
+
+		$dispatcher = new \Symfony\Component\EventDispatcher\EventDispatcher();
+		$dispatcher->addListener('core.generate_profile_fields_template_data', array($this->listener, 'modify_custom_profile_field_data'));
+
+		$event_data = array('tpl_fields');
+		$event = new \phpbb\event\data(compact($event_data));
+		$dispatcher->dispatch('core.generate_profile_fields_template_data', $event);
+
+		$event_data_after = $event->get_data_filtered($event_data);
+		$this->assertArrayHasKey('tpl_fields', $event_data_after);
+		$this->assertEquals($expected_tpl_fields, $event_data_after['tpl_fields']);
+	}
+
+	/**
+	* Data set for test_modify_post_data_pages
+	*/
+	public function modify_post_data_pages_data()
 	{
 		global $phpEx;
 
@@ -319,11 +386,11 @@ class listener_test extends \phpbb_database_test_case
 	}
 
 	/**
-	* Test local_url_to_text integration with Pages extension
+	* Test modify_post_data event for integration with Pages extension
 	*
-	* @dataProvider local_url_to_text_pages_data
+	* @dataProvider modify_post_data_pages_data
 	*/
-	public function test_local_url_to_text_pages($text, $expected_guest, $expected_user = false, $expected_admin = false)
+	public function test_modify_post_data_pages($text, $expected_guest, $expected_user = false, $expected_admin = false)
 	{
 		$this->page_operator
 			->method('get_page_links')
@@ -353,7 +420,7 @@ class listener_test extends \phpbb_database_test_case
 		$this->user->data['user_id'] = ANONYMOUS;
 
 		$dispatcher = new \Symfony\Component\EventDispatcher\EventDispatcher();
-		$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'local_url_to_text'));
+		$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'modify_post_data'));
 
 		$event_data = array('text');
 		$event = new \phpbb\event\data(compact($event_data));
@@ -370,7 +437,7 @@ class listener_test extends \phpbb_database_test_case
 			$this->user->data['user_id'] = 2;
 
 			$dispatcher = new \Symfony\Component\EventDispatcher\EventDispatcher();
-			$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'local_url_to_text'));
+			$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'modify_post_data'));
 
 			$event_data = array('text');
 			$event = new \phpbb\event\data(compact($event_data));
@@ -389,7 +456,7 @@ class listener_test extends \phpbb_database_test_case
 			$this->user->data['user_id'] = 42;
 
 			$dispatcher = new \Symfony\Component\EventDispatcher\EventDispatcher();
-			$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'local_url_to_text'));
+			$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'modify_post_data'));
 
 			$event_data = array('text');
 			$event = new \phpbb\event\data(compact($event_data));

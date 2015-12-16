@@ -26,8 +26,9 @@ class listener implements EventSubscriberInterface
 	static public function getSubscribedEvents()
 	{
 		return array(
-			'core.modify_text_for_display_after'	=> 'local_url_to_text',
-			'core.modify_format_display_text_after'	=> 'local_url_to_text',
+			'core.modify_text_for_display_after'			=> 'modify_post_data',
+			'core.modify_format_display_text_after'			=> 'modify_post_data',
+			'core.generate_profile_fields_template_data'	=> 'modify_custom_profile_field_data',
 		);
 	}
 
@@ -89,6 +90,43 @@ class listener implements EventSubscriberInterface
 	}
 
 	/**
+	* Event handler for post modifications
+	*
+	* @param	object		$event	The event object
+	* @return	null
+	* @access	public
+	*/
+	public function modify_post_data($event)
+	{
+		$event['text'] = $this->local_url_to_text($event['text']);
+	}
+
+	/**
+	* Event handler for custom profile field modifications
+	*
+	* @param	object		$event	The event object
+	* @return	null
+	* @access	public
+	*/
+	function modify_custom_profile_field_data($event)
+	{
+		$profile_data = $event['tpl_fields'];
+
+		if ($this->config['martin_localurltotext_cpf'] && isset($profile_data) && isset($profile_data['blockrow']))
+		{
+			foreach ($profile_data['blockrow'] as $idx => $row)
+			{
+				if ($row['PROFILE_FIELD_TYPE'] == 'profilefields.type.url')
+				{
+					$profile_data['blockrow'][$idx]['PROFILE_FIELD_VALUE'] = $this->local_url_to_text($row['PROFILE_FIELD_VALUE']);
+				}
+			}
+		}
+
+		$event['tpl_fields'] = $profile_data;
+	}
+
+	/**
 	* Replace the text value of links referencing a local URL
 	*
 	* Only links that phpBB automatically parsed are handled, denoted by the format
@@ -97,13 +135,12 @@ class listener implements EventSubscriberInterface
 	* NB: only the output to the visitors user agent is altered, the data in the
 	* database is unchanged.
 	*
-	* @param	object		$event	The event object
-	* @return	null
-	* @access	public
+	* @param	string	$text	The text containing the links to be replaced
+	* @return	string
+	* @access	private
 	*/
-	public function local_url_to_text($event)
+	private function local_url_to_text($text)
 	{
-		$text = $event['text'];
 		$board_url = generate_board_url();
 		$matches = array();
 
@@ -443,9 +480,9 @@ class listener implements EventSubscriberInterface
 					break;
 				}
 			}
-
-			$event['text'] = $text;
 		}
+
+		return $text;
 	}
 
 	/**
