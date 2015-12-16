@@ -50,17 +50,23 @@ class listener_test extends \phpbb_database_test_case
 
 		$this->auth_acl_map_guest = array(
 			array('f_read', 1, false),
+			array('f_read', '1', false),
 			array('f_read', 42, false),
+			array('f_read', '42', false),
 			array('a_', null, false),
 		);
 		$this->auth_acl_map_user = array(
 			array('f_read', 1, true),
+			array('f_read', '1', true),
 			array('f_read', 42, false),
+			array('f_read', '42', false),
 			array('a_', null, false),
 		);
 		$this->auth_acl_map_admin = array(
 			array('f_read', 1, true),
+			array('f_read', '1', true),
 			array('f_read', 42, true),
+			array('f_read', '42', true),
 			array('a_', null, true),
 		);
 
