@@ -12,6 +12,7 @@ Examples:
 * Links to topics can be displayed as _Topic Title_ instead of _http://yourboard/viewtopic.php?f=5&t=2_.
 * You can also include the name of the forum containing that topic to the link, e.g. _Topic Title (Forum Name)_.
 * Similar text replacements are available for links to posts and to member profile pages.
+* Local links within Custom profile fields can be replaced as well.
 * Supports [Pages extension](https://www.phpbb.com/customise/db/extension/pages/)
 * Works with [External Links extension](https://www.phpbb.com/community/viewtopic.php?f=456&t=2270671)
 
@@ -26,6 +27,7 @@ The following replacements are available:
 * For post links: poster user name, poster user colour, post subject, topic title, forum name, topic title (only if post subject is empty)
 * For member profile links: user name, user colour
 * For links to pages of the [Pages extension](https://www.phpbb.com/customise/db/extension/pages/): page title
+* Option to enable or disable (default) replacement of local links within Custom profile fields
 
 ## Authorization
 
@@ -41,6 +43,7 @@ Initial release.
 
 * Support post links with `#pXXX` parameter
 * Support for links to pages of Pages extension
+* Support for Custom profile fields
 * Better link matching to support External Links extension (and other extensions that modify phpBBs generated links)
 
 ## License
