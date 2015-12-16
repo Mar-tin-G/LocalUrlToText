@@ -76,7 +76,7 @@ class listener implements EventSubscriberInterface
 		$this->page_operator = $page_operator;
 
 		$this->ids_to_fetch = $this->infos = array();
-		foreach (['forum', 'topic', 'post', 'user', 'page'] as $resource)
+		foreach (array('forum', 'topic', 'post', 'user', 'page') as $resource)
 		{
 			$this->ids_to_fetch[$resource]	= array();
 			$this->infos[$resource]			= array();
@@ -276,7 +276,7 @@ class listener implements EventSubscriberInterface
 				}
 			}
 
-			foreach (['forum', 'topic', 'post', 'user', 'page'] as $resource)
+			foreach (array('forum', 'topic', 'post', 'user', 'page') as $resource)
 			{
 				$this->ids_to_fetch[$resource] = array_unique($this->ids_to_fetch[$resource]);
 			}
@@ -495,9 +495,10 @@ class listener implements EventSubscriberInterface
 	* @return	null
 	* @access	private
 	*/
-	private function fetch_from_db($sql_ary) {
+	private function fetch_from_db($sql_ary)
+	{
 		$ids_to_remove = array();
-		foreach (['forum', 'topic', 'post', 'user'] as $resource)
+		foreach (array('forum', 'topic', 'post', 'user') as $resource)
 		{
 			$ids_to_remove[$resource] = array();
 		}
@@ -551,7 +552,7 @@ class listener implements EventSubscriberInterface
 		}
 		$this->db->sql_freeresult($result);
 
-		foreach (['forum', 'topic', 'post', 'user'] as $resource)
+		foreach (array('forum', 'topic', 'post', 'user') as $resource)
 		{
 			$this->ids_to_fetch[$resource] = array_diff($this->ids_to_fetch[$resource], $ids_to_remove[$resource]);
 		}
