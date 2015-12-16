@@ -39,6 +39,7 @@ env:
 branches:
   only:
     - master
+    - develop
     - /^(3\.[1-9]|[4-9]\.\d)\.x$/
 
 install:
