@@ -12,9 +12,9 @@
 		<row>
 			<value>1</value>
 			<value>First forum</value>
-			<value></value>
-			<value></value>
-			<value></value>
+			<value>0</value>
+			<value>0</value>
+			<value>0</value>
 			<value></value>
 			<value></value>
 			<value></value>
@@ -22,9 +22,9 @@
 		<row>
 			<value>42</value>
 			<value>Admin forum</value>
-			<value></value>
-			<value></value>
-			<value></value>
+			<value>0</value>
+			<value>0</value>
+			<value>0</value>
 			<value></value>
 			<value></value>
 			<value></value>

@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/Mar-tin-G/LocalUrlToText.svg?branch=master)](https://travis-ci.org/Mar-tin-G/LocalUrlToText)
+
 # LocalUrlToText
 
 [phpBB 3.1](https://www.phpbb.com/) Extension Local URL To Text
