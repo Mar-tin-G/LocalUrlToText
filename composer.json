@@ -4,7 +4,7 @@
 	"description": "Replaces the local URLs (links to forums, topics, posts or members) with a customizable text. Please see the homepage linked below for further information.",
 	"homepage": "https://github.com/Mar-tin-G/LocalUrlToText",
 	"version": "1.1.0-beta1",
-	"time": "2015-12-10",
+	"time": "2015-12-17",
 	"license": "GPL-2.0",
 	"authors": [{
 		"name": "Martin",

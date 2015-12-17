@@ -4,6 +4,10 @@
 
 [phpBB 3.1](https://www.phpbb.com/) Extension Local URL To Text
 
+## Beta
+
+This extension is still in beta status. Please do not use this extension on production boards without testing.
+
 ## Description
 
 Replaces local URLs (links to forums, topics, posts or member profiles within your board) with a customizable text.
@@ -47,6 +51,21 @@ Initial release.
 * Support for links to pages of Pages extension
 * Support for Custom profile fields
 * Better link matching to support External Links extension (and other extensions that modify phpBBs generated links)
+
+## Installation Instructions
+
+* Download ZIP file from master branch
+* Extract the ZIP file locally
+* Create the following folders in you phpBB root path (if they do not exist already): `ext/martin/localurltotext/`
+* Upload all files from the extracted ZIP file to this folder `ext/martin/localurltotext/` (overwrite any existing files)
+* Log into your forum and enter the *Administration Control Panel*
+* Go to *Customise* > *Extension Management* > *Manage Extensions*
+* Find *Local URL To Text* in the list on the right side and click on *Enable*
+* Go to *Extensions* > *Local URL To Text* > *Settings* to set up the extension
+
+## Feedback
+
+Please feel free to post any feedback to the [Local URL To Text topic](https://www.phpbb.com/community/viewtopic.php?f=501&t=2284236) in phpBB's extension community forum.
 
 ## License
 
