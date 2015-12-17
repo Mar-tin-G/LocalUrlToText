@@ -6,5 +6,7 @@ services:
       - @auth
       - @dbal.conn
       - %core.php_ext%
+      - @user                  # needed when Pages extension is installed
+      - @?phpbb.pages.operator # also needed for Pages extension
     tags:
       - { name: event.listener }

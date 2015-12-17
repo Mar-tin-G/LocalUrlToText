@@ -9,7 +9,9 @@
 
 namespace martin\localurltotext\migrations;
 
-class release_1_0_0 extends \phpbb\db\migration\migration
+use phpbb\db\migration\migration;
+
+class release_1_0_0 extends migration
 {
 	public function effectively_installed()
 	{

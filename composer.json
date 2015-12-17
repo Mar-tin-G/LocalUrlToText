@@ -3,8 +3,8 @@
 	"type": "phpbb-extension",
 	"description": "Replaces the local URLs (links to forums, topics, posts or members) with a customizable text. Please see the homepage linked below for further information.",
 	"homepage": "https://github.com/Mar-tin-G/LocalUrlToText",
-	"version": "1.0.0-beta3",
-	"time": "2014-12-30",
+	"version": "1.1.0-beta1",
+	"time": "2015-12-17",
 	"license": "GPL-2.0",
 	"authors": [{
 		"name": "Martin",
@@ -14,6 +14,9 @@
 	"require": {
 		"php": ">=5.3.3",
 		"composer/installers": "~1.0"
+	},
+	"require-dev": {
+		"phpbb/epv": "dev-master"
 	},
 	"extra": {
 		"display-name": "Local URL To Text",
