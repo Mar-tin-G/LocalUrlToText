@@ -7,9 +7,6 @@
 *
 * French translation by Galixte (http://www.galixte.com)
 *
-* @copyright (c) 2017 Martin <https://github.com/Mar-tin-G>
-* @license GNU General Public License, version 2 (GPL-2.0)
-*
 */
 
 /**
