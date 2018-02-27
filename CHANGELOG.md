@@ -2,6 +2,10 @@
 
 ## Version 1.x (for phpBB 3.2)
 
+### v1.1.1 - 2018-02-27
+
+- fix handling of UTF-8 characters (see #13)
+
 ### v1.1.0 - 2018-02-27
 
 Upgrade to phpBB 3.2 extension.

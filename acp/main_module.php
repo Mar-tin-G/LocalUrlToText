@@ -34,11 +34,11 @@ class main_module
 				trigger_error('FORM_INVALID', E_USER_WARNING);
 			}
 
-			$config->set('martin_localurltotext_forum',	$request->variable('martin_localurltotext_forum', ''));
-			$config->set('martin_localurltotext_topic',	$request->variable('martin_localurltotext_topic', ''));
-			$config->set('martin_localurltotext_post',	$request->variable('martin_localurltotext_post', ''));
-			$config->set('martin_localurltotext_user',	$request->variable('martin_localurltotext_user', ''));
-			$config->set('martin_localurltotext_page',	$request->variable('martin_localurltotext_page', ''));
+			$config->set('martin_localurltotext_forum',	$request->variable('martin_localurltotext_forum', '', true));
+			$config->set('martin_localurltotext_topic',	$request->variable('martin_localurltotext_topic', '', true));
+			$config->set('martin_localurltotext_post',	$request->variable('martin_localurltotext_post', '', true));
+			$config->set('martin_localurltotext_user',	$request->variable('martin_localurltotext_user', '', true));
+			$config->set('martin_localurltotext_page',	$request->variable('martin_localurltotext_page', '', true));
 			$config->set('martin_localurltotext_cpf',	$request->variable('martin_localurltotext_cpf', 0));
 
 			trigger_error($lang->lang('ACP_LOCALURLTOTEXT_SETTING_SAVED'). adm_back_link($this->u_action));
