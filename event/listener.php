@@ -2,7 +2,7 @@
 /**
 *
 * @package phpBB Extension - martin localurltotext
-* @copyright (c) 2015 Martin ( https://github.com/Mar-tin-G )
+* @copyright (c) 2018 Martin ( https://github.com/Mar-tin-G )
 * @license http://opensource.org/licenses/gpl-2.0.php GNU General Public License v2
 *
 */
@@ -108,7 +108,7 @@ class listener implements EventSubscriberInterface
 	* @return	null
 	* @access	public
 	*/
-	function modify_custom_profile_field_data($event)
+	public function modify_custom_profile_field_data($event)
 	{
 		$profile_data = $event['tpl_fields'];
 
