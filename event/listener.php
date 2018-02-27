@@ -220,7 +220,8 @@ class listener implements EventSubscriberInterface
 				* e.g. a user added an _internal_ link with the [url] bbcode and custom text,
 				* like this: [url=http://myforum.com/viewforum.php?f=1]custom text[/url]
 				*/
-				if ($match['script'] !== '' && strpos($match['text'], $match['script']) === false) {
+				if ($match['script'] !== '' && strpos($match['text'], $match['script']) === false)
+				{
 					continue;
 				}
 
