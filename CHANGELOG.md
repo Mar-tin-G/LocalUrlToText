@@ -4,6 +4,7 @@
 
 ### v1.1.1 - 2018-02-27
 
+- do not replace custom link text (see #10)
 - fix handling of UTF-8 characters (see #13)
 
 ### v1.1.0 - 2018-02-27

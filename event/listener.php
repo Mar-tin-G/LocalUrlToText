@@ -156,7 +156,7 @@ class listener implements EventSubscriberInterface
 		 *            also, if extension Pages is installed (see https://www.phpbb.com/customise/db/extension/pages/),
 		 *            look for 'app.php/page/' (without mod_rewrite) and 'page/' (with mod_rewrite)
 		 * ['params'] the PARAMETERS like '?f=123&t=456' or '?p=789'
-		 * ['text']   the TEXT content of the <a> element (unused, this is what we replace)
+		 * ['text']   the TEXT content of the <a> element (to skip replacing custom text)
 		 * ['type']   filled later with link type
 		 * ['id']     filled later with resource ID
 		 */
@@ -215,6 +215,15 @@ class listener implements EventSubscriberInterface
 			// get all forum, post, topic and user ids that need to by fetched from the DB
 			foreach ($matches as $k => $match)
 			{
+				/*
+				* if the link contains custom text, do not replace it!
+				* e.g. a user added an _internal_ link with the [url] bbcode and custom text,
+				* like this: [url=http://myforum.com/viewforum.php?f=1]custom text[/url]
+				*/
+				if ($match['script'] !== '' && strpos($match['text'], $match['script']) === false) {
+					continue;
+				}
+
 				// we store link type and resource id so we don't need to preg_match() again later
 				$matches[$k]['type'] = 0;
 				$matches[$k]['id'] = 0;
