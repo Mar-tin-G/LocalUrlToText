@@ -1,7 +1,10 @@
 <?php
 /**
 *
-* Local URL To Text extension for the phpBB Forum Software package.
+* @package phpBB Extension - martin localurltotext
+* @copyright (c) 2018 Martin ( https://github.com/Mar-tin-G )
+* @license http://opensource.org/licenses/gpl-2.0.php GNU General Public License v2
+*
 * French translation by Galixte (http://www.galixte.com)
 *
 * @copyright (c) 2017 Martin <https://github.com/Mar-tin-G>
@@ -35,7 +38,7 @@ if (empty($lang) || !is_array($lang))
 // in a url you again do not need to specify an order e.g., 'Click %sHERE%s' is fine
 //
 // Some characters you may want to copy&paste:
-// ’ « » “ ” …
+// ’ « » “ ” …
 //
 
 $lang = array_merge($lang, array(

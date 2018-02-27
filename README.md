@@ -1,12 +1,8 @@
+# phpBB Local URL To Text extension
+
+This is the repository for the development of the [phpBB 3.2](https://www.phpbb.com/) "Local URL To Text" Extension.
+
 [![Build Status](https://travis-ci.org/Mar-tin-G/LocalUrlToText.svg?branch=master)](https://travis-ci.org/Mar-tin-G/LocalUrlToText)
-
-# LocalUrlToText
-
-[phpBB 3.1](https://www.phpbb.com/) Extension Local URL To Text
-
-## Beta
-
-This extension is still in beta status. Please do not use this extension on production boards without testing.
 
 ## Description
 
@@ -19,8 +15,8 @@ Examples:
 * You can also include the name of the forum containing that topic to the link, e.g. _Topic Title (Forum Name)_.
 * Similar text replacements are available for links to posts and to member profile pages.
 * Local links within Custom profile fields can be replaced as well.
-* Supports [Pages extension](https://www.phpbb.com/customise/db/extension/pages/)
-* Works with [External Links extension](https://www.phpbb.com/community/viewtopic.php?f=456&t=2270671)
+* Supports [Pages extension](https://www.phpbb.com/customise/db/extension/pages/).
+* Works with [External Links extension](https://www.phpbb.com/community/viewtopic.php?f=456&t=2270671).
 
 The extension only replaces these links when displaying a message (post, private message, etc.). It does not alter the messages that are stored into the database.
 So when a topic gets renamed, all links to this topic will display the new topic title automatically.
@@ -39,33 +35,28 @@ The following replacements are available:
 
 Users will only see content from forums they are authorized to read. E.g. if someone posts a link to a topic that resides in a protected forum, only members with access to this forum will see the title of this topic. Unauthorized members will see the default _viewtopic.php?t=xx_ link.
 
-## Changelog
+## Installation
 
-### v1.0.0-beta3
+* Download the latest validated release.
+* Extract the downloaded release and copy it to the `ext` directory of your phpBB board
+  * this should result in a `ext/martin/localurltotext/` directory
+* Log into your forum and enter the *Administration Control Panel*.
+* Go to *Customise* > *Extension Management* > *Manage Extensions*.
+* Find *Local URL To Text* in the list on the right side and click on *Enable*.
+* Go to *Extensions* > *Local URL To Text* > *Settings* to set up the extension.
 
-Initial release.
+## Removal
 
-### v1.1.0-beta1
-
-* Support post links with `#pXXX` parameter
-* Support for links to pages of Pages extension
-* Support for Custom profile fields
-* Better link matching to support External Links extension (and other extensions that modify phpBBs generated links)
-
-## Installation Instructions
-
-* Download ZIP file from master branch
-* Extract the ZIP file locally
-* Create the following folders in you phpBB root path (if they do not exist already): `ext/martin/localurltotext/`
-* Upload all files from the extracted ZIP file to this folder `ext/martin/localurltotext/` (overwrite any existing files)
-* Log into your forum and enter the *Administration Control Panel*
-* Go to *Customise* > *Extension Management* > *Manage Extensions*
-* Find *Local URL To Text* in the list on the right side and click on *Enable*
-* Go to *Extensions* > *Local URL To Text* > *Settings* to set up the extension
+* Log into your forum and enter the *Administration Control Panel*.
+* Go to *Customise* > *Extension Management* > *Manage Extensions*.
+* Find *Local URL To Text* in the list on the right side and click on *Disable*.
+* To permanently uninstall, click on *Delete data* and delete the `ext/martin/localurltotext/` directory afterwards.
 
 ## Feedback
 
-Please feel free to post any feedback to the [Local URL To Text topic](https://www.phpbb.com/community/viewtopic.php?f=501&t=2284236) in phpBB's extension community forum.
+Please feel free to post any feedback to the [Local URL To Text topic](https://www.phpbb.com/community/viewtopic.php?t=2284236) in phpBB's extension community forum.
+
+For bug reports, please open an issue on [the extension's GitHub page](https://github.com/Mar-tin-G/LocalUrlToText).
 
 ## License
 

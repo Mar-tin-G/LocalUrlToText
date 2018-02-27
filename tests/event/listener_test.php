@@ -2,7 +2,7 @@
 /**
 *
 * @package phpBB Extension - martin localurltotext
-* @copyright (c) 2015 Martin ( https://github.com/Mar-tin-G )
+* @copyright (c) 2018 Martin ( https://github.com/Mar-tin-G )
 * @license http://opensource.org/licenses/gpl-2.0.php GNU General Public License v2
 *
 */
@@ -125,15 +125,22 @@ class listener_test extends \phpbb_database_test_case
 	}
 
 	/**
-	* Helper function for tests
+	* Helper function for tests, needed for generate_board_url() call
 	*/
 	protected function generate_board_url()
 	{
-		global $user, $request;
+		global $user, $request, $config;
 
-		// needed for generate_board_url() call.
 		$user = new \phpbb_mock_user();
 		$request = new \phpbb_mock_request();
+		$config = array(
+			'force_server_vars'	=> true,
+			'server_protocol'	=> 'http://',
+			'server_name'		=> 'my-forum.com',
+			'server_port'		=> 80,
+			'script_path'		=> '/',
+			'cookie_secure'		=> false,
+		);
 
 		$this->board_url = generate_board_url();
 	}
