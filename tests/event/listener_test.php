@@ -146,6 +146,14 @@ class listener_test extends \phpbb_database_test_case
 	}
 
 	/**
+	* Helper function replacing the URL protocol scheme
+	*/
+	protected function replace_url_scheme($url, $scheme)
+	{
+		return preg_replace('/^[a-z0-9.-]+:/', $scheme, $url);
+	}
+
+	/**
 	* Get test data from fixtures
 	*/
 	public function getDataSet()
@@ -184,6 +192,7 @@ class listener_test extends \phpbb_database_test_case
 		global $phpEx;
 
 		$this->generate_board_url();
+		$https_board_url = $this->replace_url_scheme($this->board_url, 'https:');
 
 		/*
 		first value: expected sql_query() count
@@ -284,6 +293,11 @@ class listener_test extends \phpbb_database_test_case
 					'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">f: <i>First forum</i></a>' .
 					'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">u: heinz, uc: #c0ffee</a>',
 			),
+			'url with different scheme' => array(
+				1,
+				'<a class="postlink-local" href="'. $https_board_url .'/viewforum.'. $phpEx .'?f=1">viewforum.'. $phpEx .'?f=1</a>',
+				'<a class="postlink-local" href="'. $https_board_url .'/viewforum.'. $phpEx .'?f=1">f: <i>First forum</i></a>',
+			),
 		);
 	}
 
@@ -340,6 +354,7 @@ class listener_test extends \phpbb_database_test_case
 		global $phpEx;
 
 		$this->generate_board_url();
+		$https_board_url = $this->replace_url_scheme($this->board_url, 'https:');
 
 		return array(
 			'forum url' => array(
@@ -364,6 +379,32 @@ class listener_test extends \phpbb_database_test_case
 						1 => array(
 							'PROFILE_FIELD_TYPE'	=> 'profilefields.type.url',
 							'PROFILE_FIELD_VALUE'	=> '<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">f: <i>First forum</i></a>',
+						),
+					),
+				),
+			),
+			'url with different scheme' => array(
+				array(
+					'blockrow' => array(
+						0 => array(
+							'PROFILE_FIELD_TYPE'	=> 'whatever',
+							'PROFILE_FIELD_VALUE'	=> 'some field we are not interested in - value that must remain unchanged',
+						),
+						1 => array(
+							'PROFILE_FIELD_TYPE'	=> 'profilefields.type.url',
+							'PROFILE_FIELD_VALUE'	=> '<a class="postlink-local" href="'. $https_board_url .'/viewforum.'. $phpEx .'?f=1">viewforum.'. $phpEx .'?f=1</a>',
+						),
+					),
+				),
+				array(
+					'blockrow' => array(
+						0 => array(
+							'PROFILE_FIELD_TYPE'	=> 'whatever',
+							'PROFILE_FIELD_VALUE'	=> 'some field we are not interested in - value that must remain unchanged',
+						),
+						1 => array(
+							'PROFILE_FIELD_TYPE'	=> 'profilefields.type.url',
+							'PROFILE_FIELD_VALUE'	=> '<a class="postlink-local" href="'. $https_board_url .'/viewforum.'. $phpEx .'?f=1">f: <i>First forum</i></a>',
 						),
 					),
 				),
@@ -403,6 +444,7 @@ class listener_test extends \phpbb_database_test_case
 		global $phpEx;
 
 		$this->generate_board_url();
+		$https_board_url = $this->replace_url_scheme($this->board_url, 'https:');
 
 		/*
 		first value: original text
@@ -448,6 +490,10 @@ class listener_test extends \phpbb_database_test_case
 				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
 				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
 				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
+			),
+			'url with different scheme' => array(
+				'<a class="postlink-local" href="'. $https_board_url .'/app.'. $phpEx .'/page/guestpage">/app.'. $phpEx .'/page/guestpage</a>',
+				'<a class="postlink-local" href="'. $https_board_url .'/app.'. $phpEx .'/page/guestpage">t: Guest page</a>',
 			),
 		);
 	}

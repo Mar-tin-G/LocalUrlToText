@@ -141,7 +141,7 @@ class listener implements EventSubscriberInterface
 	*/
 	private function local_url_to_text($text)
 	{
-		$board_url = generate_board_url();
+		$board_url = $this->board_url_to_regexp(generate_board_url());
 		$matches = array();
 
 		/*
@@ -167,7 +167,7 @@ class listener implements EventSubscriberInterface
 		// the class attribute must contain 'postlink-local', but there may be other classes appended or prepended
 		$class = $not_sep . 'postlink-local'. $not_sep;
 		// the href attribute must contain the board url,
-		$href =  preg_quote($board_url) .'/'.
+		$href =  $board_url .'/'.
 			// followed by one of the scripts we are looking for,
 			'(?|'.
 				// which is either one of the default scripts in the phpBB root,
@@ -566,5 +566,19 @@ class listener implements EventSubscriberInterface
 		{
 			$this->ids_to_fetch[$resource] = array_diff($this->ids_to_fetch[$resource], $ids_to_remove[$resource]);
 		}
+	}
+
+	/**
+	* Create regular expression from given URL, including common URL protocol
+	* schemes "http:" and "https:"
+	*
+	* @param	string		$url	URL to be converted to regular expression
+	* @return	string				URL in regular epxression format with common schemes
+	* @access	private
+	*/
+	private function board_url_to_regexp($url)
+	{
+		$url_without_scheme = preg_replace('/^[a-z0-9.-]+:/', '', $url);
+		return 'https?\:' . preg_quote($url_without_scheme);
 	}
 }

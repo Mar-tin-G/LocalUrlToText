@@ -2,10 +2,11 @@
 
 ## Version 1.x (for phpBB 3.2)
 
-### v1.1.1 - 2018-02-27
+### v1.1.1 - 2018-03-11
 
 - do not replace custom link text (see #10)
 - fix handling of UTF-8 characters (see #13)
+- support replacing links with different protocol scheme (see #12)
 
 ### v1.1.0 - 2018-02-27
 
