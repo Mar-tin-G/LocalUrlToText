@@ -2,7 +2,7 @@
 /**
 *
 * @package phpBB Extension - martin localurltotext
-* @copyright (c) 2015 Martin ( https://github.com/Mar-tin-G )
+* @copyright (c) 2018 Martin ( https://github.com/Mar-tin-G )
 * @license http://opensource.org/licenses/gpl-2.0.php GNU General Public License v2
 *
 */
@@ -125,17 +125,32 @@ class listener_test extends \phpbb_database_test_case
 	}
 
 	/**
-	* Helper function for tests
+	* Helper function for tests, needed for generate_board_url() call
 	*/
 	protected function generate_board_url()
 	{
-		global $user, $request;
+		global $user, $request, $config;
 
-		// needed for generate_board_url() call.
 		$user = new \phpbb_mock_user();
 		$request = new \phpbb_mock_request();
+		$config = array(
+			'force_server_vars'	=> true,
+			'server_protocol'	=> 'http://',
+			'server_name'		=> 'my-forum.com',
+			'server_port'		=> 80,
+			'script_path'		=> '/',
+			'cookie_secure'		=> false,
+		);
 
 		$this->board_url = generate_board_url();
+	}
+
+	/**
+	* Helper function replacing the URL protocol scheme
+	*/
+	protected function replace_url_scheme($url, $scheme)
+	{
+		return preg_replace('/^[a-z0-9.-]+:/', $scheme, $url);
 	}
 
 	/**
@@ -177,6 +192,7 @@ class listener_test extends \phpbb_database_test_case
 		global $phpEx;
 
 		$this->generate_board_url();
+		$https_board_url = $this->replace_url_scheme($this->board_url, 'https:');
 
 		/*
 		first value: expected sql_query() count
@@ -187,60 +203,100 @@ class listener_test extends \phpbb_database_test_case
 		return array(
 			'no local urls' => array(
 				0,
-				'blah blah',
+				'<a class="postlink" href="http://example.com/">some text</a>',
 			),
 			'forum url' => array(
 				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">viewforum.'. $phpEx .'?f=1</a>',
 				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">f: <i>First forum</i></a>',
+			),
+			'forum url with custom text' => array(
+				0,
+				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">some text</a>',
 			),
 			'admin forum url' => array(
 				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?x=y&f=42">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?x=y&f=42">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?x=y&f=42">viewforum.'. $phpEx .'?f=42</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?x=y&f=42">viewforum.'. $phpEx .'?f=42</a>',
 				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?x=y&f=42">f: <i>Admin forum</i></a>',
+			),
+			'admin forum url with custom text' => array(
+				0,
+				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?x=y&f=42">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?x=y&f=42">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?x=y&f=42">some text</a>',
 			),
 			'topic url' => array(
 				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1">viewtopic.'. $phpEx .'?f=1&amp;t=1</a>',
 				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1">t: Topic 1 title, f: First forum</a>',
+			),
+			'topic url with custom text' => array(
+				0,
+				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1">some text</a>',
 			),
 			'admin topic url' => array(
 				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42">viewtopic.'. $phpEx .'?t=42</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42">viewtopic.'. $phpEx .'?t=42</a>',
 				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42">t: Admin topic title, f: Admin forum</a>',
+			),
+			'admin topic url with custom text' => array(
+				0,
+				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42">some text</a>',
 			),
 			'post url' => array(
 				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1">viewtopic.'. $phpEx .'?p=1</a>',
 				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1">p: Post 1 subject, t: Topic 1 title, pt: Post 1 subject, f: First forum, u: heinz, uc: #c0ffee</a>',
+			),
+			'post url with custom text' => array(
+				0,
+				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1">some text</a>',
 			),
 			'admin post url' => array(
 				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42">viewtopic.'. $phpEx .'?x=y#p42</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42">viewtopic.'. $phpEx .'?x=y#p42</a>',
 				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42">p: , t: Admin topic title, pt: Admin topic title, f: Admin forum, u: admin, uc: #ff0000</a>',
+			),
+			'admin post url with custom text' => array(
+				0,
+				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42">some text</a>',
 			),
 			'user url' => array(
 				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">memberlist.'. $phpEx .'?mode=viewprofile?u=2</a>',
 				'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">u: heinz, uc: #c0ffee</a>',
+			),
+			'user url with custom text' => array(
+				0,
+				'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">some text</a>',
 			),
 			'invalid and nonexistent ids' => array(
 				1,
-				'blah <a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=xyz">some text</a> blah <a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=66">some text</a> blah',
+				'blah <a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=xyz">viewtopic.'. $phpEx .'?t=xyz</a>' .
+					'blah <a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=66">viewforum.'. $phpEx .'?f=66</a> blah',
 			),
 			'caching' => array(
 				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1">some text</a>' .
-					'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1">some text</a>' .
-					'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">some text</a>' .
-					'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1">viewtopic.'. $phpEx .'?p=1</a>' .
+					'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1">viewtopic.'. $phpEx .'?f=1&amp;t=1</a>' .
+					'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">viewforum.'. $phpEx .'?f=1</a>' .
+					'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">memberlist.'. $phpEx .'?mode=viewprofile?u=2</a>',
 				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1">p: Post 1 subject, t: Topic 1 title, pt: Post 1 subject, f: First forum, u: heinz, uc: #c0ffee</a>' .
 					'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1">t: Topic 1 title, f: First forum</a>' .
 					'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">f: <i>First forum</i></a>' .
 					'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">u: heinz, uc: #c0ffee</a>',
+			),
+			'url with different scheme' => array(
+				1,
+				'<a class="postlink-local" href="'. $https_board_url .'/viewforum.'. $phpEx .'?f=1">viewforum.'. $phpEx .'?f=1</a>',
+				'<a class="postlink-local" href="'. $https_board_url .'/viewforum.'. $phpEx .'?f=1">f: <i>First forum</i></a>',
 			),
 		);
 	}
@@ -298,6 +354,7 @@ class listener_test extends \phpbb_database_test_case
 		global $phpEx;
 
 		$this->generate_board_url();
+		$https_board_url = $this->replace_url_scheme($this->board_url, 'https:');
 
 		return array(
 			'forum url' => array(
@@ -309,7 +366,7 @@ class listener_test extends \phpbb_database_test_case
 						),
 						1 => array(
 							'PROFILE_FIELD_TYPE'	=> 'profilefields.type.url',
-							'PROFILE_FIELD_VALUE'	=> '<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">some text</a>',
+							'PROFILE_FIELD_VALUE'	=> '<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">viewforum.'. $phpEx .'?f=1</a>',
 						),
 					),
 				),
@@ -322,6 +379,32 @@ class listener_test extends \phpbb_database_test_case
 						1 => array(
 							'PROFILE_FIELD_TYPE'	=> 'profilefields.type.url',
 							'PROFILE_FIELD_VALUE'	=> '<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">f: <i>First forum</i></a>',
+						),
+					),
+				),
+			),
+			'url with different scheme' => array(
+				array(
+					'blockrow' => array(
+						0 => array(
+							'PROFILE_FIELD_TYPE'	=> 'whatever',
+							'PROFILE_FIELD_VALUE'	=> 'some field we are not interested in - value that must remain unchanged',
+						),
+						1 => array(
+							'PROFILE_FIELD_TYPE'	=> 'profilefields.type.url',
+							'PROFILE_FIELD_VALUE'	=> '<a class="postlink-local" href="'. $https_board_url .'/viewforum.'. $phpEx .'?f=1">viewforum.'. $phpEx .'?f=1</a>',
+						),
+					),
+				),
+				array(
+					'blockrow' => array(
+						0 => array(
+							'PROFILE_FIELD_TYPE'	=> 'whatever',
+							'PROFILE_FIELD_VALUE'	=> 'some field we are not interested in - value that must remain unchanged',
+						),
+						1 => array(
+							'PROFILE_FIELD_TYPE'	=> 'profilefields.type.url',
+							'PROFILE_FIELD_VALUE'	=> '<a class="postlink-local" href="'. $https_board_url .'/viewforum.'. $phpEx .'?f=1">f: <i>First forum</i></a>',
 						),
 					),
 				),
@@ -361,6 +444,7 @@ class listener_test extends \phpbb_database_test_case
 		global $phpEx;
 
 		$this->generate_board_url();
+		$https_board_url = $this->replace_url_scheme($this->board_url, 'https:');
 
 		/*
 		first value: original text
@@ -370,23 +454,46 @@ class listener_test extends \phpbb_database_test_case
 		*/
 		return array(
 			'page url without mod_rewrite' => array(
-				'<a class="postlink-local" href="'. $this->board_url .'/app.'. $phpEx .'/page/guestpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/app.'. $phpEx .'/page/guestpage">/app.'. $phpEx .'/page/guestpage</a>',
 				'<a class="postlink-local" href="'. $this->board_url .'/app.'. $phpEx .'/page/guestpage">t: Guest page</a>',
 			),
+			'page url without mod_rewrite with custom text' => array(
+				'<a class="postlink-local" href="'. $this->board_url .'/app.'. $phpEx .'/page/guestpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/app.'. $phpEx .'/page/guestpage">some text</a>',
+			),
 			'guest visible page url' => array(
-				'<a class="postlink-local" href="'. $this->board_url .'/page/guestpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/guestpage">/page/guestpage</a>',
 				'<a class="postlink-local" href="'. $this->board_url .'/page/guestpage">t: Guest page</a>',
 			),
+			'guest visible page url with custom text' => array(
+				'<a class="postlink-local" href="'. $this->board_url .'/page/guestpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/guestpage">some text</a>',
+			),
 			'member visible page url' => array(
-				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">/page/memberpage</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">/page/memberpage</a>',
 				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">t: Member page</a>',
 			),
+			'member visible page url with custom text' => array(
+				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">some text</a>',
+			),
 			'admin visible page url' => array(
-				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">/page/adminpage</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">/page/adminpage</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">/page/adminpage</a>',
 				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">t: Admin page</a>',
+			),
+			'admin visible page url with custom text' => array(
+				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
+				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
+			),
+			'url with different scheme' => array(
+				'<a class="postlink-local" href="'. $https_board_url .'/app.'. $phpEx .'/page/guestpage">/app.'. $phpEx .'/page/guestpage</a>',
+				'<a class="postlink-local" href="'. $https_board_url .'/app.'. $phpEx .'/page/guestpage">t: Guest page</a>',
 			),
 		);
 	}

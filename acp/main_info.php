@@ -2,7 +2,7 @@
 /**
 *
 * @package phpBB Extension - martin localurltotext
-* @copyright (c) 2015 Martin ( https://github.com/Mar-tin-G )
+* @copyright (c) 2018 Martin ( https://github.com/Mar-tin-G )
 * @license http://opensource.org/licenses/gpl-2.0.php GNU General Public License v2
 *
 */
@@ -16,7 +16,6 @@ class main_info
 		return array(
 			'filename'	=> '\martin\localurltotext\acp\main_module',
 			'title'		=> 'ACP_LOCALURLTOTEXT_TITLE',
-			'version'	=> '1.0.0',
 			'modes'		=> array(
 				'settings'	=> array(
 					'title'	=> 'ACP_LOCALURLTOTEXT_SETTINGS',

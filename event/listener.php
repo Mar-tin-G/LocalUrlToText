@@ -2,7 +2,7 @@
 /**
 *
 * @package phpBB Extension - martin localurltotext
-* @copyright (c) 2015 Martin ( https://github.com/Mar-tin-G )
+* @copyright (c) 2018 Martin ( https://github.com/Mar-tin-G )
 * @license http://opensource.org/licenses/gpl-2.0.php GNU General Public License v2
 *
 */
@@ -108,7 +108,7 @@ class listener implements EventSubscriberInterface
 	* @return	null
 	* @access	public
 	*/
-	function modify_custom_profile_field_data($event)
+	public function modify_custom_profile_field_data($event)
 	{
 		$profile_data = $event['tpl_fields'];
 
@@ -141,7 +141,7 @@ class listener implements EventSubscriberInterface
 	*/
 	private function local_url_to_text($text)
 	{
-		$board_url = generate_board_url();
+		$board_url = $this->board_url_to_regexp(generate_board_url());
 		$matches = array();
 
 		/*
@@ -156,7 +156,7 @@ class listener implements EventSubscriberInterface
 		 *            also, if extension Pages is installed (see https://www.phpbb.com/customise/db/extension/pages/),
 		 *            look for 'app.php/page/' (without mod_rewrite) and 'page/' (with mod_rewrite)
 		 * ['params'] the PARAMETERS like '?f=123&t=456' or '?p=789'
-		 * ['text']   the TEXT content of the <a> element (unused, this is what we replace)
+		 * ['text']   the TEXT content of the <a> element (to skip replacing custom text)
 		 * ['type']   filled later with link type
 		 * ['id']     filled later with resource ID
 		 */
@@ -167,7 +167,7 @@ class listener implements EventSubscriberInterface
 		// the class attribute must contain 'postlink-local', but there may be other classes appended or prepended
 		$class = $not_sep . 'postlink-local'. $not_sep;
 		// the href attribute must contain the board url,
-		$href =  preg_quote($board_url) .'/'.
+		$href =  $board_url .'/'.
 			// followed by one of the scripts we are looking for,
 			'(?|'.
 				// which is either one of the default scripts in the phpBB root,
@@ -215,6 +215,16 @@ class listener implements EventSubscriberInterface
 			// get all forum, post, topic and user ids that need to by fetched from the DB
 			foreach ($matches as $k => $match)
 			{
+				/*
+				* if the link contains custom text, do not replace it!
+				* e.g. a user added an _internal_ link with the [url] bbcode and custom text,
+				* like this: [url=http://myforum.com/viewforum.php?f=1]custom text[/url]
+				*/
+				if ($match['script'] !== '' && strpos($match['text'], $match['script']) === false)
+				{
+					continue;
+				}
+
 				// we store link type and resource id so we don't need to preg_match() again later
 				$matches[$k]['type'] = 0;
 				$matches[$k]['id'] = 0;
@@ -556,5 +566,19 @@ class listener implements EventSubscriberInterface
 		{
 			$this->ids_to_fetch[$resource] = array_diff($this->ids_to_fetch[$resource], $ids_to_remove[$resource]);
 		}
+	}
+
+	/**
+	* Create regular expression from given URL, including common URL protocol
+	* schemes "http:" and "https:"
+	*
+	* @param	string		$url	URL to be converted to regular expression
+	* @return	string				URL in regular epxression format with common schemes
+	* @access	private
+	*/
+	private function board_url_to_regexp($url)
+	{
+		$url_without_scheme = preg_replace('/^[a-z0-9.-]+:/', '', $url);
+		return 'https?\:' . preg_quote($url_without_scheme);
 	}
 }
