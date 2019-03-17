@@ -51,5 +51,5 @@ $lang = array_merge($lang, array(
 	'ACP_LOCALURLTOTEXT_PAGE'			=> 'Placeholder for Pages link text',
 	'ACP_LOCALURLTOTEXT_PAGE_EXPLAIN'	=> 'For the <a href="https://www.phpbb.com/customise/db/extension/pages/" target="_blank">Pages extension</a>. Enter placeholder, HTML is allowed. Available variables: {PAGE_TITLE}',
 	'ACP_LOCALURLTOTEXT_CPF'			=> 'Replace links within Custom profile fields',
-	'ACP_LOCALURLTOTEXT_CPF_EXPLAIN'	=> 'Whether local links should be replaced within Custom profile fields. Only Custom profile fields of type "URL (Link)" are considered.',
+	'ACP_LOCALURLTOTEXT_CPF_EXPLAIN'	=> 'Whether local links should be replaced within Custom profile fields. Only Custom profile fields of type “URL (Link)” are considered.',
 ));

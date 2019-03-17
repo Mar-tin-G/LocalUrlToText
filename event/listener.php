@@ -17,6 +17,7 @@ use phpbb\auth\auth;
 use phpbb\db\driver\driver_interface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use phpbb\user;
+use martin\localurltotext\constants;
 
 /**
 * Event listener
@@ -81,12 +82,6 @@ class listener implements EventSubscriberInterface
 			$this->ids_to_fetch[$resource]	= array();
 			$this->infos[$resource]			= array();
 		}
-
-		define('LOCALURLTOTEXT_TYPE_FORUM', 1);
-		define('LOCALURLTOTEXT_TYPE_TOPIC', 2);
-		define('LOCALURLTOTEXT_TYPE_POST', 3);
-		define('LOCALURLTOTEXT_TYPE_USER', 4);
-		define('LOCALURLTOTEXT_TYPE_PAGE', 5);
 	}
 
 	/**
@@ -236,7 +231,7 @@ class listener implements EventSubscriberInterface
 						if (preg_match('/(?:\?|&|&amp;)f=(\d+)/', $match['params'], $id))
 						{
 							$this->ids_to_fetch['forum'][] = $id[1];
-							$matches[$k]['type'] = LOCALURLTOTEXT_TYPE_FORUM;
+							$matches[$k]['type'] = constants::TYPE_FORUM;
 							$matches[$k]['id'] = $id[1];
 						}
 					break;
@@ -245,20 +240,20 @@ class listener implements EventSubscriberInterface
 						if (preg_match('/(?:\?|&|&amp;)p=(\d+)/', $match['params'], $id))
 						{
 							$this->ids_to_fetch['post'][] = $id[1];
-							$matches[$k]['type'] = LOCALURLTOTEXT_TYPE_POST;
+							$matches[$k]['type'] = constants::TYPE_POST;
 							$matches[$k]['id'] = $id[1];
 						}
 						// handle link 'viewtopic?...#pxxx' too, see https://github.com/Mar-tin-G/LocalUrlToText/issues/7
 						else if (preg_match('/#p(\d+)/', $match['params'], $id))
 						{
 							$this->ids_to_fetch['post'][] = $id[1];
-							$matches[$k]['type'] = LOCALURLTOTEXT_TYPE_POST;
+							$matches[$k]['type'] = constants::TYPE_POST;
 							$matches[$k]['id'] = $id[1];
 						}
 						else if (preg_match('/(?:\?|&|&amp;)t=(\d+)/', $match['params'], $id))
 						{
 							$this->ids_to_fetch['topic'][] = $id[1];
-							$matches[$k]['type'] = LOCALURLTOTEXT_TYPE_TOPIC;
+							$matches[$k]['type'] = constants::TYPE_TOPIC;
 							$matches[$k]['id'] = $id[1];
 						}
 					break;
@@ -267,7 +262,7 @@ class listener implements EventSubscriberInterface
 						if (strpos($match['params'], 'mode=viewprofile') !== false && preg_match('/(?:\?|&|&amp;)u=(\d+)/', $match['params'], $id))
 						{
 							$this->ids_to_fetch['user'][] = $id[1];
-							$matches[$k]['type'] = LOCALURLTOTEXT_TYPE_USER;
+							$matches[$k]['type'] = constants::TYPE_USER;
 							$matches[$k]['id'] = $id[1];
 						}
 					break;
@@ -279,7 +274,7 @@ class listener implements EventSubscriberInterface
 						if (preg_match('/([a-zA-Z0-9_-]+)/', $match['params'], $id))
 						{
 							$this->ids_to_fetch['page'][] = $id[1];
-							$matches[$k]['type'] = LOCALURLTOTEXT_TYPE_PAGE;
+							$matches[$k]['type'] = constants::TYPE_PAGE;
 							$matches[$k]['id'] = $id[1];
 						}
 					break;
@@ -384,7 +379,7 @@ class listener implements EventSubscriberInterface
 			{
 				switch ($match['type'])
 				{
-					case LOCALURLTOTEXT_TYPE_FORUM:
+					case constants::TYPE_FORUM:
 						if (isset($this->infos['forum'][$match['id']]))
 						{
 							$text = str_replace(
@@ -399,7 +394,7 @@ class listener implements EventSubscriberInterface
 						}
 					break;
 
-					case LOCALURLTOTEXT_TYPE_POST:
+					case constants::TYPE_POST:
 						if (isset($this->infos['post'][$match['id']]))
 						{
 							$text = str_replace(
@@ -428,7 +423,7 @@ class listener implements EventSubscriberInterface
 						}
 					break;
 
-					case LOCALURLTOTEXT_TYPE_TOPIC:
+					case constants::TYPE_TOPIC:
 						if (isset($this->infos['topic'][$match['id']]))
 						{
 							$text = str_replace(
@@ -449,7 +444,7 @@ class listener implements EventSubscriberInterface
 						}
 					break;
 
-					case LOCALURLTOTEXT_TYPE_USER:
+					case constants::TYPE_USER:
 						if (isset($this->infos['user'][$match['id']]))
 						{
 							$text = str_replace(
@@ -470,7 +465,7 @@ class listener implements EventSubscriberInterface
 						}
 					break;
 
-					case LOCALURLTOTEXT_TYPE_PAGE:
+					case constants::TYPE_PAGE:
 						if (isset($this->infos['page'][$match['id']]))
 						{
 							$text = str_replace(

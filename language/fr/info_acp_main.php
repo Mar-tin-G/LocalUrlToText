@@ -51,7 +51,7 @@ $lang = array_merge($lang, array(
 	'ACP_LOCALURLTOTEXT_USER'			=> 'Texte de remplacement des liens des profils des utilisateurs',
 	'ACP_LOCALURLTOTEXT_USER_EXPLAIN'	=> 'Permet de saisir le texte de remplacement des liens vers les profils des utilisateurs, le langage HTML est autorisé. Les variables disponibles sont : {USER_NAME}, {USER_COLOUR}.',
 	'ACP_LOCALURLTOTEXT_PAGE'			=> 'Texte de remplacement des liens des pages',
-	'ACP_LOCALURLTOTEXT_PAGE_EXPLAIN'	=> 'Permet de saisir le texte de remplacement des liens vers les pages générées par l’extension « <a href="https://www.phpbb.com/customise/db/extension/pages/" target="_blank">Pages »</a>, le langage HTML est autorisé. La variable disponible est : {PAGE_TITLE}.',
+	'ACP_LOCALURLTOTEXT_PAGE_EXPLAIN'	=> 'Permet de saisir le texte de remplacement des liens vers les pages générées par l’extension <a href="https://www.phpbb.com/customise/db/extension/pages/" target="_blank">« Pages »</a>, le langage HTML est autorisé. La variable disponible est : {PAGE_TITLE}.',
 	'ACP_LOCALURLTOTEXT_CPF'			=> 'Remplacer les liens des champs de profil personnalisés',
 	'ACP_LOCALURLTOTEXT_CPF_EXPLAIN'	=> 'Permet de saisir le texte de remplacement des liens des champs de profil personnalisés. Uniquement les champs de profil personnalisés de type « URL (Lien) » sont pris en compte.',
 ));

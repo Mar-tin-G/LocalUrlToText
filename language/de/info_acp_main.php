@@ -51,5 +51,5 @@ $lang = array_merge($lang, array(
 	'ACP_LOCALURLTOTEXT_PAGE'			=> 'Platzhalter für den Pages-Linktext',
 	'ACP_LOCALURLTOTEXT_PAGE_EXPLAIN'	=> 'Für die <a href="https://www.phpbb.com/customise/db/extension/pages/" target="_blank">Pages-Extension</a>. Eingabe des Platzhalters, HTML ist möglich. Mögliche Variablen: {PAGE_TITLE}',
 	'ACP_LOCALURLTOTEXT_CPF'			=> 'Links in Benutzerdefinierten Profilfeldern ersetzen',
-	'ACP_LOCALURLTOTEXT_CPF_EXPLAIN'	=> 'Gibt an, ob lokale Links innerhalb von Benutzerdefinierten Profilfeldern ersetzt werden sollen. Es werden nur Benutzerdefinierte Profilfelder vom Typ "URL (Link)" beachtet.',
+	'ACP_LOCALURLTOTEXT_CPF_EXPLAIN'	=> 'Gibt an, ob lokale Links innerhalb von Benutzerdefinierten Profilfeldern ersetzt werden sollen. Es werden nur Benutzerdefinierte Profilfelder vom Typ “URL (Link)” beachtet.',
 ));
