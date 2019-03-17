@@ -210,6 +210,9 @@ class listener implements EventSubscriberInterface
 			// get all forum, post, topic and user ids that need to by fetched from the DB
 			foreach ($matches as $k => $match)
 			{
+				$matches[$k]['type'] = 0;
+				$matches[$k]['id'] = 0;
+
 				/*
 				* if the link contains custom text, do not replace it!
 				* e.g. a user added an _internal_ link with the [url] bbcode and custom text,
@@ -221,8 +224,6 @@ class listener implements EventSubscriberInterface
 				}
 
 				// we store link type and resource id so we don't need to preg_match() again later
-				$matches[$k]['type'] = 0;
-				$matches[$k]['id'] = 0;
 				switch ($match['script'])
 				{
 					case 'viewforum':
