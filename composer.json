@@ -5,7 +5,7 @@
 	"homepage": "https://github.com/Mar-tin-G/LocalUrlToText",
 	"version": "1.1.1",
 	"time": "2018-03-11",
-	"license": "GPL-2.0",
+	"license": "GPL-2.0-only",
 	"authors": [
 		{
 			"name": "Martin",
