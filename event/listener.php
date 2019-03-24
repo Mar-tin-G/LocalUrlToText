@@ -17,7 +17,6 @@ use phpbb\auth\auth;
 use phpbb\db\driver\driver_interface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use phpbb\user;
-use martin\localurltotext\constants;
 
 /**
 * Event listener
