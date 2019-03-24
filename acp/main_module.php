@@ -30,7 +30,6 @@ class main_module
 		{
 			if (!check_form_key('martin/localurltotext'))
 			{
-				$lang->add_lang('acp/common');
 				trigger_error('FORM_INVALID', E_USER_WARNING);
 			}
 

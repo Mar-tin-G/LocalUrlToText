@@ -40,7 +40,7 @@ class listener_test extends \phpbb_database_test_case
 		global $phpEx;
 
 		$this->config = new \phpbb\config\config(array(
-			'martin_localurltotext_forum'	=> 'f: <i>{FORUM_NAME}</i>',
+			'martin_localurltotext_forum'	=> 'f: {FORUM_NAME}',
 			'martin_localurltotext_topic'	=> 't: {TOPIC_TITLE}, f: {FORUM_NAME}',
 			'martin_localurltotext_post'	=> 'p: {POST_SUBJECT}, t: {TOPIC_TITLE}, pt: {POST_OR_TOPIC_TITLE}, f: {FORUM_NAME}, u: {USER_NAME}, uc: {USER_COLOUR}',
 			'martin_localurltotext_user'	=> 'u: {USER_NAME}, uc: {USER_COLOUR}',
@@ -83,6 +83,29 @@ class listener_test extends \phpbb_database_test_case
 			->disableOriginalConstructor()
 			->setMethods(array('get_page_links'))
 			->getMock();
+
+		$this->page_operator
+			->method('get_page_links')
+			->willReturn(array(
+				array(
+					'page_route'				=> 'guestpage',
+					'page_display'				=> true,
+					'page_display_to_guests'	=> true,
+					'page_title'				=> 'Guest page',
+				),
+				array(
+					'page_route'				=> 'memberpage',
+					'page_display'				=> true,
+					'page_display_to_guests'	=> false,
+					'page_title'				=> 'Member page',
+				),
+				array(
+					'page_route'				=> 'adminpage',
+					'page_display'				=> false,
+					'page_display_to_guests'	=> false,
+					'page_title'				=> 'Admin page',
+				),
+			));
 
 		$this->generate_board_url();
 	}
@@ -176,8 +199,7 @@ class listener_test extends \phpbb_database_test_case
 	public function test_getSubscribedEvents()
 	{
 		$this->assertEquals(array(
-			'core.modify_text_for_display_after',
-			'core.modify_format_display_text_after',
+			'core.text_formatter_s9e_render_before',
 			'core.generate_profile_fields_template_data',
 		), array_keys(\martin\localurltotext\event\listener::getSubscribedEvents()));
 	}
@@ -195,108 +217,81 @@ class listener_test extends \phpbb_database_test_case
 		$https_board_url = $this->replace_url_scheme($this->board_url, 'https:');
 
 		/*
-		first value: expected sql_query() count
-		second value: original text
-		third value - if specified: expected text for users; if not specified: expected text for users = original text
-		fourth value - if specified: expected text for admins; if not specified: expected text for admins = expected text for users
+		first value: original XML
+		second value - if specified: expected XML for users; if not specified: expected XML for users = original XML
+		third value - if specified: expected XML for admins; if not specified: expected XML for admins = expected XML for users
 		*/
 		return array(
 			'no local urls' => array(
-				0,
-				'<a class="postlink" href="http://example.com/">some text</a>',
+				'<URL url="http://example.com/"><LINK_TEXT text="some text">some text</LINK_TEXT></URL>',
 			),
 			'forum url' => array(
-				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">viewforum.'. $phpEx .'?f=1</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">f: <i>First forum</i></a>',
+				'<URL url="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1"><LINK_TEXT text="viewforum.'. $phpEx .'?f=1">'. $this->board_url .'/viewforum.'. $phpEx .'?f=1</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1"><LINK_TEXT text="f: First forum">'. $this->board_url .'/viewforum.'. $phpEx .'?f=1</LINK_TEXT></URL>',
 			),
 			'forum url with custom text' => array(
-				0,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">some text</a>',
+				'<URL url="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1"><s>[url='. $this->board_url .'/viewforum.'. $phpEx .'?f=1]</s>some text<e>[/url]</e></URL>',
 			),
 			'admin forum url' => array(
-				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?x=y&f=42">viewforum.'. $phpEx .'?f=42</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?x=y&f=42">viewforum.'. $phpEx .'?f=42</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?x=y&f=42">f: <i>Admin forum</i></a>',
+				'<URL url="'. $this->board_url .'/viewforum.'. $phpEx .'?f=42"><LINK_TEXT text="viewforum.'. $phpEx .'?f=42">'. $this->board_url .'/viewforum.'. $phpEx .'?f=42</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/viewforum.'. $phpEx .'?f=42"><LINK_TEXT text="viewforum.'. $phpEx .'?f=42">'. $this->board_url .'/viewforum.'. $phpEx .'?f=42</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/viewforum.'. $phpEx .'?f=42"><LINK_TEXT text="f: Admin forum">'. $this->board_url .'/viewforum.'. $phpEx .'?f=42</LINK_TEXT></URL>',
 			),
 			'admin forum url with custom text' => array(
-				0,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?x=y&f=42">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?x=y&f=42">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?x=y&f=42">some text</a>',
+				'<URL url="'. $this->board_url .'/viewforum.'. $phpEx .'?f=42"><s>[url='. $this->board_url .'/viewforum.'. $phpEx .'?f=42]</s>some text<e>[/url]</e></URL>',
+				'<URL url="'. $this->board_url .'/viewforum.'. $phpEx .'?f=42"><s>[url='. $this->board_url .'/viewforum.'. $phpEx .'?f=42]</s>some text<e>[/url]</e></URL>',
+				'<URL url="'. $this->board_url .'/viewforum.'. $phpEx .'?f=42"><s>[url='. $this->board_url .'/viewforum.'. $phpEx .'?f=42]</s>some text<e>[/url]</e></URL>',
 			),
 			'topic url' => array(
-				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1">viewtopic.'. $phpEx .'?f=1&amp;t=1</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1">t: Topic 1 title, f: First forum</a>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1"><LINK_TEXT text="viewtopic.'. $phpEx .'?f=1&amp;t=1">'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1"><LINK_TEXT text="t: Topic 1 title, f: First forum">'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1</LINK_TEXT></URL>',
 			),
 			'topic url with custom text' => array(
-				0,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1">some text</a>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1"><s>[url='. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1]</s>some text<e>[/url]</e></URL>',
 			),
 			'admin topic url' => array(
-				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42">viewtopic.'. $phpEx .'?t=42</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42">viewtopic.'. $phpEx .'?t=42</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42">t: Admin topic title, f: Admin forum</a>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42"><LINK_TEXT text="viewtopic.'. $phpEx .'?t=42">'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42"><LINK_TEXT text="viewtopic.'. $phpEx .'?t=42">'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42"><LINK_TEXT text="t: Admin topic title, f: Admin forum">'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42</LINK_TEXT></URL>',
 			),
 			'admin topic url with custom text' => array(
-				0,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42">some text</a>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42"><s>[url='. $this->board_url .'/viewtopic.'. $phpEx .'?t=42]</s>some text<e>[/url]</e></URL>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42"><s>[url='. $this->board_url .'/viewtopic.'. $phpEx .'?t=42]</s>some text<e>[/url]</e></URL>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=42"><s>[url='. $this->board_url .'/viewtopic.'. $phpEx .'?t=42]</s>some text<e>[/url]</e></URL>',
 			),
 			'post url' => array(
-				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1">viewtopic.'. $phpEx .'?p=1</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1">p: Post 1 subject, t: Topic 1 title, pt: Post 1 subject, f: First forum, u: heinz, uc: #c0ffee</a>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1"><LINK_TEXT text="viewtopic.'. $phpEx .'?p=1">'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1"><LINK_TEXT text="p: Post 1 subject, t: Topic 1 title, pt: Post 1 subject, f: First forum, u: heinz, uc: #c0ffee">'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1</LINK_TEXT></URL>',
 			),
 			'post url with custom text' => array(
-				0,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1">some text</a>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1"><s>[url='. $this->board_url .'/viewtopic.'. $phpEx .'?p=1]</s>some text<e>[/url]</e></URL>',
 			),
 			'admin post url' => array(
-				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42">viewtopic.'. $phpEx .'?x=y#p42</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42">viewtopic.'. $phpEx .'?x=y#p42</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42">p: , t: Admin topic title, pt: Admin topic title, f: Admin forum, u: admin, uc: #ff0000</a>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42"><LINK_TEXT text="viewtopic.'. $phpEx .'?x=y#p42">'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42"><LINK_TEXT text="viewtopic.'. $phpEx .'?x=y#p42">'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42"><LINK_TEXT text="p: , t: Admin topic title, pt: Admin topic title, f: Admin forum, u: admin, uc: #ff0000">'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42</LINK_TEXT></URL>',
 			),
 			'admin post url with custom text' => array(
-				0,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42">some text</a>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42"><s>[url='. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42]</s>some text<e>[/url]</e></URL>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42"><s>[url='. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42]</s>some text<e>[/url]</e></URL>',
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42"><s>[url='. $this->board_url .'/viewtopic.'. $phpEx .'?x=y#p42]</s>some text<e>[/url]</e></URL>',
 			),
 			'user url' => array(
-				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">memberlist.'. $phpEx .'?mode=viewprofile?u=2</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">u: heinz, uc: #c0ffee</a>',
+				'<URL url="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2"><LINK_TEXT text="memberlist.'. $phpEx .'?mode=viewprofile?u=2">'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2"><LINK_TEXT text="u: heinz, uc: #c0ffee">'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2</LINK_TEXT></URL>',
 			),
 			'user url with custom text' => array(
-				0,
-				'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">some text</a>',
+				'<URL url="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2"><s>[url='. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2]</s>some text<e>[/url]</e></URL>',
 			),
-			'invalid and nonexistent ids' => array(
-				1,
-				'blah <a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=xyz">viewtopic.'. $phpEx .'?t=xyz</a>' .
-					'blah <a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=66">viewforum.'. $phpEx .'?f=66</a> blah',
+			'invalid id' => array(
+				'<URL url="'. $this->board_url .'/viewtopic.'. $phpEx .'?t=xyz"><LINK_TEXT text="viewtopic.'. $phpEx .'?t=xyz">'. $this->board_url .'/viewtopic.'. $phpEx .'?t=xyz</LINK_TEXT></URL>',
 			),
-			'caching' => array(
-				1,
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1">viewtopic.'. $phpEx .'?p=1</a>' .
-					'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1">viewtopic.'. $phpEx .'?f=1&amp;t=1</a>' .
-					'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">viewforum.'. $phpEx .'?f=1</a>' .
-					'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">memberlist.'. $phpEx .'?mode=viewprofile?u=2</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?p=1">p: Post 1 subject, t: Topic 1 title, pt: Post 1 subject, f: First forum, u: heinz, uc: #c0ffee</a>' .
-					'<a class="postlink-local" href="'. $this->board_url .'/viewtopic.'. $phpEx .'?f=1&amp;t=1">t: Topic 1 title, f: First forum</a>' .
-					'<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">f: <i>First forum</i></a>' .
-					'<a class="postlink-local" href="'. $this->board_url .'/memberlist.'. $phpEx .'?mode=viewprofile?u=2">u: heinz, uc: #c0ffee</a>',
+			'nonexistent id' => array(
+				'<URL url="'. $this->board_url .'/viewforum.'. $phpEx .'?f=66"><LINK_TEXT text="viewforum.'. $phpEx .'?f=66">'. $this->board_url .'/viewforum.'. $phpEx .'?f=66</LINK_TEXT></URL>',
 			),
 			'url with different scheme' => array(
-				1,
-				'<a class="postlink-local" href="'. $https_board_url .'/viewforum.'. $phpEx .'?f=1">viewforum.'. $phpEx .'?f=1</a>',
-				'<a class="postlink-local" href="'. $https_board_url .'/viewforum.'. $phpEx .'?f=1">f: <i>First forum</i></a>',
+				'<URL url="'. $https_board_url .'/viewforum.'. $phpEx .'?f=1"><LINK_TEXT text="viewforum.'. $phpEx .'?f=1">'. $https_board_url .'/viewforum.'. $phpEx .'?f=1</LINK_TEXT></URL>',
+				'<URL url="'. $https_board_url .'/viewforum.'. $phpEx .'?f=1"><LINK_TEXT text="f: First forum">'. $https_board_url .'/viewforum.'. $phpEx .'?f=1</LINK_TEXT></URL>',
 			),
 		);
 	}
@@ -306,7 +301,7 @@ class listener_test extends \phpbb_database_test_case
 	*
 	* @dataProvider modify_post_data_data
 	*/
-	public function test_modify_post_data($sql_query_count, $text, $expected_user = false, $expected_admin = false)
+	public function test_modify_post_data($xml, $expected_user = false, $expected_admin = false)
 	{
 		$this->set_listener();
 
@@ -315,15 +310,13 @@ class listener_test extends \phpbb_database_test_case
 		$dispatcher = new \Symfony\Component\EventDispatcher\EventDispatcher();
 		$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'modify_post_data'));
 
-		$event_data = array('text');
+		$event_data = array('xml');
 		$event = new \phpbb\event\data(compact($event_data));
 		$dispatcher->dispatch('core.modify_text_for_display_after', $event);
 
 		$event_data_after = $event->get_data_filtered($event_data);
-		$this->assertArrayHasKey('text', $event_data_after);
-		$this->assertEquals(($expected_user !== false ? $expected_user : $text), $event_data_after['text']);
-
-		$this->assertEquals($sql_query_count, $this->db->num_queries['total']);
+		$this->assertArrayHasKey('xml', $event_data_after);
+		$this->assertEquals(($expected_user !== false ? $expected_user : $xml), $event_data_after['xml']);
 
 		if ($expected_admin !== false) {
 			$this->create_auth();
@@ -333,14 +326,14 @@ class listener_test extends \phpbb_database_test_case
 			$dispatcher = new \Symfony\Component\EventDispatcher\EventDispatcher();
 			$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'modify_post_data'));
 
-			$event_data = array('text');
+			$event_data = array('xml');
 			$event = new \phpbb\event\data(compact($event_data));
 			$dispatcher->dispatch('core.modify_text_for_display_after', $event);
 
 			$event_data_after = $event->get_data_filtered($event_data);
-			$this->assertArrayHasKey('text', $event_data_after);
+			$this->assertArrayHasKey('xml', $event_data_after);
 
-			$this->assertEquals($expected_admin, $event_data_after['text']);
+			$this->assertEquals($expected_admin, $event_data_after['xml']);
 		}
 	}
 
@@ -361,24 +354,28 @@ class listener_test extends \phpbb_database_test_case
 				array(
 					'blockrow' => array(
 						0 => array(
-							'PROFILE_FIELD_TYPE'	=> 'whatever',
-							'PROFILE_FIELD_VALUE'	=> 'some field we are not interested in - value that must remain unchanged',
+							'PROFILE_FIELD_TYPE'		=> 'whatever',
+							'PROFILE_FIELD_VALUE'		=> 'some field we are not interested in - value that must remain unchanged',
+							'PROFILE_FIELD_VALUE_RAW'	=> 'whatever',
 						),
 						1 => array(
-							'PROFILE_FIELD_TYPE'	=> 'profilefields.type.url',
-							'PROFILE_FIELD_VALUE'	=> '<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">viewforum.'. $phpEx .'?f=1</a>',
+							'PROFILE_FIELD_TYPE'		=> 'profilefields.type.url',
+							'PROFILE_FIELD_VALUE'		=> '<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">viewforum.'. $phpEx .'?f=1</a>',
+							'PROFILE_FIELD_VALUE_RAW'	=> $this->board_url .'/viewforum.'. $phpEx .'?f=1',
 						),
 					),
 				),
 				array(
 					'blockrow' => array(
 						0 => array(
-							'PROFILE_FIELD_TYPE'	=> 'whatever',
-							'PROFILE_FIELD_VALUE'	=> 'some field we are not interested in - value that must remain unchanged',
+							'PROFILE_FIELD_TYPE'		=> 'whatever',
+							'PROFILE_FIELD_VALUE'		=> 'some field we are not interested in - value that must remain unchanged',
+							'PROFILE_FIELD_VALUE_RAW'	=> 'whatever',
 						),
 						1 => array(
-							'PROFILE_FIELD_TYPE'	=> 'profilefields.type.url',
-							'PROFILE_FIELD_VALUE'	=> '<a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">f: <i>First forum</i></a>',
+							'PROFILE_FIELD_TYPE'		=> 'profilefields.type.url',
+							'PROFILE_FIELD_VALUE'		=> '<!-- l --><a class="postlink-local" href="'. $this->board_url .'/viewforum.'. $phpEx .'?f=1">f: First forum</a><!-- l -->',
+							'PROFILE_FIELD_VALUE_RAW'	=> $this->board_url .'/viewforum.'. $phpEx .'?f=1',
 						),
 					),
 				),
@@ -387,24 +384,28 @@ class listener_test extends \phpbb_database_test_case
 				array(
 					'blockrow' => array(
 						0 => array(
-							'PROFILE_FIELD_TYPE'	=> 'whatever',
-							'PROFILE_FIELD_VALUE'	=> 'some field we are not interested in - value that must remain unchanged',
+							'PROFILE_FIELD_TYPE'		=> 'whatever',
+							'PROFILE_FIELD_VALUE'		=> 'some field we are not interested in - value that must remain unchanged',
+							'PROFILE_FIELD_VALUE_RAW'	=> 'whatever',
 						),
 						1 => array(
-							'PROFILE_FIELD_TYPE'	=> 'profilefields.type.url',
-							'PROFILE_FIELD_VALUE'	=> '<a class="postlink-local" href="'. $https_board_url .'/viewforum.'. $phpEx .'?f=1">viewforum.'. $phpEx .'?f=1</a>',
+							'PROFILE_FIELD_TYPE'		=> 'profilefields.type.url',
+							'PROFILE_FIELD_VALUE'		=> '<a class="postlink-local" href="'. $https_board_url .'/viewforum.'. $phpEx .'?f=1">viewforum.'. $phpEx .'?f=1</a>',
+							'PROFILE_FIELD_VALUE_RAW'	=> $https_board_url .'/viewforum.'. $phpEx .'?f=1',
 						),
 					),
 				),
 				array(
 					'blockrow' => array(
 						0 => array(
-							'PROFILE_FIELD_TYPE'	=> 'whatever',
-							'PROFILE_FIELD_VALUE'	=> 'some field we are not interested in - value that must remain unchanged',
+							'PROFILE_FIELD_TYPE'		=> 'whatever',
+							'PROFILE_FIELD_VALUE'		=> 'some field we are not interested in - value that must remain unchanged',
+							'PROFILE_FIELD_VALUE_RAW'	=> 'whatever',
 						),
 						1 => array(
-							'PROFILE_FIELD_TYPE'	=> 'profilefields.type.url',
-							'PROFILE_FIELD_VALUE'	=> '<a class="postlink-local" href="'. $https_board_url .'/viewforum.'. $phpEx .'?f=1">f: <i>First forum</i></a>',
+							'PROFILE_FIELD_TYPE'		=> 'profilefields.type.url',
+							'PROFILE_FIELD_VALUE'		=> '<!-- l --><a class="postlink-local" href="'. $https_board_url .'/viewforum.'. $phpEx .'?f=1">f: First forum</a><!-- l -->',
+							'PROFILE_FIELD_VALUE_RAW'	=> $https_board_url .'/viewforum.'. $phpEx .'?f=1',
 						),
 					),
 				),
@@ -447,53 +448,57 @@ class listener_test extends \phpbb_database_test_case
 		$https_board_url = $this->replace_url_scheme($this->board_url, 'https:');
 
 		/*
-		first value: original text
-		second value: expected text for guests
-		third value - if specified: expected text for users; if not specified: expected text for users = expected text for guests
-		fourth value - if specified: expected text for admins; if not specified: expected text for admins = expected text for users
+		first value: original XML
+		second value: expected XML for guests
+		third value - if specified: expected XML for users; if not specified: expected XML for users = expected XML for guests
+		fourth value - if specified: expected XML for admins; if not specified: expected XML for admins = expected XML for users
 		*/
 		return array(
 			'page url without mod_rewrite' => array(
-				'<a class="postlink-local" href="'. $this->board_url .'/app.'. $phpEx .'/page/guestpage">/app.'. $phpEx .'/page/guestpage</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/app.'. $phpEx .'/page/guestpage">t: Guest page</a>',
+				'<URL url="'. $this->board_url .'/app.'. $phpEx .'/guestpage"><LINK_TEXT text="app.'. $phpEx .'/guestpage">'. $this->board_url .'/app.'. $phpEx .'/guestpage</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/app.'. $phpEx .'/guestpage"><LINK_TEXT text="t: Guest page">'. $this->board_url .'/app.'. $phpEx .'/guestpage</LINK_TEXT></URL>',
 			),
 			'page url without mod_rewrite with custom text' => array(
-				'<a class="postlink-local" href="'. $this->board_url .'/app.'. $phpEx .'/page/guestpage">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/app.'. $phpEx .'/page/guestpage">some text</a>',
+				'<URL url="'. $this->board_url .'/app.'. $phpEx .'/guestpage"><s>[url='. $this->board_url .'/app.'. $phpEx .'/guestpage]</s>some text<e>[/url]</e></URL>',
+				'<URL url="'. $this->board_url .'/app.'. $phpEx .'/guestpage"><s>[url='. $this->board_url .'/app.'. $phpEx .'/guestpage]</s>some text<e>[/url]</e></URL>',
 			),
 			'guest visible page url' => array(
-				'<a class="postlink-local" href="'. $this->board_url .'/page/guestpage">/page/guestpage</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/page/guestpage">t: Guest page</a>',
+				'<URL url="'. $this->board_url .'/guestpage"><LINK_TEXT text="guestpage">'. $this->board_url .'/guestpage</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/guestpage"><LINK_TEXT text="t: Guest page">'. $this->board_url .'/guestpage</LINK_TEXT></URL>',
 			),
 			'guest visible page url with custom text' => array(
-				'<a class="postlink-local" href="'. $this->board_url .'/page/guestpage">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/page/guestpage">some text</a>',
+				'<URL url="'. $this->board_url .'/guestpage"><s>[url='. $this->board_url .'/guestpage]</s>some text<e>[/url]</e></URL>',
+				'<URL url="'. $this->board_url .'/guestpage"><s>[url='. $this->board_url .'/guestpage]</s>some text<e>[/url]</e></URL>',
 			),
 			'member visible page url' => array(
-				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">/page/memberpage</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">/page/memberpage</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">t: Member page</a>',
+				'<URL url="'. $this->board_url .'/memberpage"><LINK_TEXT text="memberpage">'. $this->board_url .'/memberpage</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/memberpage"><LINK_TEXT text="memberpage">'. $this->board_url .'/memberpage</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/memberpage"><LINK_TEXT text="t: Member page">'. $this->board_url .'/memberpage</LINK_TEXT></URL>',
 			),
 			'member visible page url with custom text' => array(
-				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/page/memberpage">some text</a>',
+				'<URL url="'. $this->board_url .'/memberpage"><s>[url='. $this->board_url .'/memberpage]</s>some text<e>[/url]</e></URL>',
+				'<URL url="'. $this->board_url .'/memberpage"><s>[url='. $this->board_url .'/memberpage]</s>some text<e>[/url]</e></URL>',
+				'<URL url="'. $this->board_url .'/memberpage"><s>[url='. $this->board_url .'/memberpage]</s>some text<e>[/url]</e></URL>',
 			),
 			'admin visible page url' => array(
-				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">/page/adminpage</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">/page/adminpage</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">/page/adminpage</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">t: Admin page</a>',
+				'<URL url="'. $this->board_url .'/adminpage"><LINK_TEXT text="adminpage">'. $this->board_url .'/adminpage</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/adminpage"><LINK_TEXT text="adminpage">'. $this->board_url .'/adminpage</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/adminpage"><LINK_TEXT text="adminpage">'. $this->board_url .'/adminpage</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/adminpage"><LINK_TEXT text="t: Admin page">'. $this->board_url .'/adminpage</LINK_TEXT></URL>',
 			),
 			'admin visible page url with custom text' => array(
-				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
-				'<a class="postlink-local" href="'. $this->board_url .'/page/adminpage">some text</a>',
+				'<URL url="'. $this->board_url .'/adminpage"><s>[url='. $this->board_url .'/adminpage]</s>some text<e>[/url]</e></URL>',
+				'<URL url="'. $this->board_url .'/adminpage"><s>[url='. $this->board_url .'/adminpage]</s>some text<e>[/url]</e></URL>',
+				'<URL url="'. $this->board_url .'/adminpage"><s>[url='. $this->board_url .'/adminpage]</s>some text<e>[/url]</e></URL>',
+				'<URL url="'. $this->board_url .'/adminpage"><s>[url='. $this->board_url .'/adminpage]</s>some text<e>[/url]</e></URL>',
 			),
 			'url with different scheme' => array(
-				'<a class="postlink-local" href="'. $https_board_url .'/app.'. $phpEx .'/page/guestpage">/app.'. $phpEx .'/page/guestpage</a>',
-				'<a class="postlink-local" href="'. $https_board_url .'/app.'. $phpEx .'/page/guestpage">t: Guest page</a>',
+				'<URL url="'. $https_board_url .'/guestpage"><LINK_TEXT text="guestpage">'. $https_board_url .'/guestpage</LINK_TEXT></URL>',
+				'<URL url="'. $https_board_url .'/guestpage"><LINK_TEXT text="t: Guest page">'. $https_board_url .'/guestpage</LINK_TEXT></URL>',
+			),
+			'unknown page route' => array(
+				'<URL url="'. $this->board_url .'/unknownpage"><LINK_TEXT text="unknownpage">'. $this->board_url .'/unknownpage</LINK_TEXT></URL>',
+				'<URL url="'. $this->board_url .'/unknownpage"><LINK_TEXT text="unknownpage">'. $this->board_url .'/unknownpage</LINK_TEXT></URL>',
 			),
 		);
 	}
@@ -503,45 +508,22 @@ class listener_test extends \phpbb_database_test_case
 	*
 	* @dataProvider modify_post_data_pages_data
 	*/
-	public function test_modify_post_data_pages($text, $expected_guest, $expected_user = false, $expected_admin = false)
+	public function test_modify_post_data_pages($xml, $expected_guest, $expected_user = false, $expected_admin = false)
 	{
-		$this->page_operator
-			->method('get_page_links')
-			->willReturn(array(
-				array(
-					'page_route'				=> 'guestpage',
-					'page_display'				=> true,
-					'page_display_to_guests'	=> true,
-					'page_title'				=> 'Guest page',
-				),
-				array(
-					'page_route'				=> 'memberpage',
-					'page_display'				=> true,
-					'page_display_to_guests'	=> false,
-					'page_title'				=> 'Member page',
-				),
-				array(
-					'page_route'				=> 'adminpage',
-					'page_display'				=> false,
-					'page_display_to_guests'	=> false,
-					'page_title'				=> 'Admin page',
-				),
-			));
-
 		$this->set_listener();
 		$this->set_auth($this->auth_acl_map_guest);
 		$this->user->data['user_id'] = ANONYMOUS;
 
 		$dispatcher = new \Symfony\Component\EventDispatcher\EventDispatcher();
-		$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'modify_post_data'));
+		$dispatcher->addListener('core.text_formatter_s9e_render_before', array($this->listener, 'modify_post_data'));
 
-		$event_data = array('text');
+		$event_data = array('xml');
 		$event = new \phpbb\event\data(compact($event_data));
-		$dispatcher->dispatch('core.modify_text_for_display_after', $event);
+		$dispatcher->dispatch('core.text_formatter_s9e_render_before', $event);
 
 		$event_data_after = $event->get_data_filtered($event_data);
-		$this->assertArrayHasKey('text', $event_data_after);
-		$this->assertEquals($expected_guest, $event_data_after['text']);
+		$this->assertArrayHasKey('xml', $event_data_after);
+		$this->assertEquals($expected_guest, $event_data_after['xml']);
 
 		if ($expected_user !== false) {
 			$this->create_auth();
@@ -550,16 +532,16 @@ class listener_test extends \phpbb_database_test_case
 			$this->user->data['user_id'] = 2;
 
 			$dispatcher = new \Symfony\Component\EventDispatcher\EventDispatcher();
-			$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'modify_post_data'));
+			$dispatcher->addListener('core.text_formatter_s9e_render_before', array($this->listener, 'modify_post_data'));
 
-			$event_data = array('text');
+			$event_data = array('xml');
 			$event = new \phpbb\event\data(compact($event_data));
-			$dispatcher->dispatch('core.modify_text_for_display_after', $event);
+			$dispatcher->dispatch('core.text_formatter_s9e_render_before', $event);
 
 			$event_data_after = $event->get_data_filtered($event_data);
-			$this->assertArrayHasKey('text', $event_data_after);
+			$this->assertArrayHasKey('xml', $event_data_after);
 
-			$this->assertEquals($expected_user, $event_data_after['text']);
+			$this->assertEquals($expected_user, $event_data_after['xml']);
 		}
 
 		if ($expected_admin !== false) {
@@ -569,16 +551,16 @@ class listener_test extends \phpbb_database_test_case
 			$this->user->data['user_id'] = 42;
 
 			$dispatcher = new \Symfony\Component\EventDispatcher\EventDispatcher();
-			$dispatcher->addListener('core.modify_text_for_display_after', array($this->listener, 'modify_post_data'));
+			$dispatcher->addListener('core.text_formatter_s9e_render_before', array($this->listener, 'modify_post_data'));
 
-			$event_data = array('text');
+			$event_data = array('xml');
 			$event = new \phpbb\event\data(compact($event_data));
-			$dispatcher->dispatch('core.modify_text_for_display_after', $event);
+			$dispatcher->dispatch('core.text_formatter_s9e_render_before', $event);
 
 			$event_data_after = $event->get_data_filtered($event_data);
-			$this->assertArrayHasKey('text', $event_data_after);
+			$this->assertArrayHasKey('xml', $event_data_after);
 
-			$this->assertEquals($expected_admin, $event_data_after['text']);
+			$this->assertEquals($expected_admin, $event_data_after['xml']);
 		}
 	}
 }
