@@ -2,6 +2,12 @@
 
 ## Version 1.x (for phpBB 3.2)
 
+### v1.2.0 - 2019-03-24
+
+Apply phpBB Extension Customisations Team feedback for extension validation.
+
+Removes support for using HTML code in replacement strings.
+
 ### v1.1.1 - 2018-03-11
 
 - do not replace custom link text (see #10)
@@ -18,7 +24,7 @@ Upgrade to phpBB 3.2 extension.
 
 - add support post links with `#pXXX` parameter
 - add support for links to pages of phpBB "Pages" extension
-- add dupport for Custom profile fields
+- add support for Custom profile fields
 - better link matching to support External Links extension (and other extensions that modify phpBBs generated links)
 
 ### v1.0.0-beta3 - 2014-12-30
